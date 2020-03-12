@@ -146,7 +146,7 @@
   (format pane " " )
   (multiple-value-bind (sec min h d m y) (decode-universal-time (get-universal-time))
     (format pane "~d/~2,'0d/~2,'0d ~2,'0d:~2,'0d:~2,'0d " y m d h min sec))
-  (present *batteries* '((battery) :what-present :short))
+;;  (present *batteries* '((battery) :what-present :short))
   (format pane "~a" (wireless))
   (loop for frame in (managed-frames)
      when (typep frame 'application-frame)
