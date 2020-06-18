@@ -105,7 +105,7 @@
        ;; application.
        (unless (or (eq *wm-application* (pane-frame sheet))
                    (and (eq (active-frame *doors-port*) (pane-frame sheet))
-                        (not (eq *wm-application* (pane-frame (port-keyboard-input-focus *doors-port*))))))
+                        (not (eq (pane-frame sheet) (pane-frame (port-keyboard-input-focus *doors-port*))))))
          (setf (active-frame *doors-port*) (pane-frame sheet)))
        (when (typep sheet 'foreign-application-pane)
          (xlib:allow-events display :replay-pointer time)

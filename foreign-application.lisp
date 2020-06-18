@@ -25,13 +25,11 @@
 				     )
   ((foreign-xwindow :initarg :foreign-xwindow :initform nil  :accessor foreign-xwindow)))
 
-(defmethod stream-set-input-focus ((stream foreign-application-pane))
-    (let ((port (or (port stream)
-                  (port *application-frame*))))
-      (prog1 (port-keyboard-input-focus port)
-        (setf (port-keyboard-input-focus port) stream)
-        (xlib:set-input-focus  (clim-clx::clx-port-display port)
-                               (foreign-xwindow stream) :parent))))
+(defmethod (setf port-keyboard-input-focus) ((focus foreign-application-pane) (port doors-port))
+  (prog1 (port-keyboard-input-focus port)
+    (setf  (%port-keyboard-input-focus port) focus)
+    (xlib:set-input-focus  (clim-clx::clx-port-display port)
+                           (foreign-xwindow focus) :parent)))
 
 (defun configure-foreign-application (foreign-pane)
   (let* ((xparent (sheet-mirror foreign-pane))
@@ -97,6 +95,9 @@
   (:layouts (:default (vertically () main)))
   (:top-level (foreign-application-frame-top-level . nil)))
 
+(defmethod (setf active-frame) :after ((frame foreign-application) (port doors-port))
+  (setf (port-keyboard-input-focus port) (find-pane-named frame 'main)))
+
 (defmethod frame-pretty-name ((frame foreign-application))
   (multiple-value-bind (name class)
       (handler-case
@@ -105,6 +106,7 @@
       (or class "NoName")))
 
 (defmethod foreign-application-frame-top-level ((frame application-frame))
+  (setf (active-frame (port frame)) frame)
   (clim-extensions:simple-event-loop))
 
 (defmethod frame-exit :around ((frame foreign-application))
@@ -121,7 +123,7 @@
   (call-next-method))
 
 (defmethod generate-panes :after ((fm doors-frame-manager) (frame foreign-application))
-  (setf (frame-standard-input frame) (find-pane-named frame 'main)))
+  (setf (port-keyboard-input-focus (port fm)) (find-pane-named frame 'main)))
 
 (defmethod disown-frame :before ((frame-manager doors-frame-manager) (frame foreign-application))
   (xlib:reparent-window (foreign-xwindow frame) (sheet-mirror (graft frame)) 0 0))
