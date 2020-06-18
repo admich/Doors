@@ -97,9 +97,6 @@
     (setf  (%port-keyboard-input-focus port) focus)
     (when (xlib:window-p mirror)
       (xlib:set-input-focus  (clim-clx::clx-port-display port) mirror :parent))
-    (unless (or (eql (active-frame port) (pane-frame focus))
-                (and focus (eql *wm-application* (pane-frame focus))))
-      (setf (active-frame port) (pane-frame focus)))
     old-focus))
 
 (defmethod port-set-mirror-transformation :after ((port doors-port) mirror mirror-transformation)

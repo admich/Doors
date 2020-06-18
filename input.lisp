@@ -103,10 +103,12 @@
        ;; :button-press on a foreign-application change the focus on
        ;; that application and the click is replay on the foreign
        ;; application.
+       (unless (or (eq *wm-application* (pane-frame sheet))
+                   (and (eq (active-frame *doors-port*) (pane-frame sheet))
+                        (not (eq *wm-application* (pane-frame (port-keyboard-input-focus *doors-port*))))))
+         (setf (active-frame *doors-port*) (pane-frame sheet)))
        (when (typep sheet 'foreign-application-pane)
          (xlib:allow-events display :replay-pointer time)
-         (when (not (eq (active-frame *doors-port*) (pane-frame sheet)))
-           (setf (active-frame *doors-port*) (pane-frame sheet)))
          (return-from event-handler (maybe-funcall *wait-function*)))
        (let ((modifier-state (clim-xcommon:x-event-state-modifiers *doors-port* state))
              (button (clim-clx::decode-x-button-code code)))
