@@ -54,6 +54,12 @@
         (otherwise
          (prog1 t (distribute-event port event)))))))
 
+(defun ensure-focus-frame ()
+  (if (car (doors::managed-frames *wm-application*))
+      (setf (doors::active-frame (port *wm-application*))
+            (car (doors::managed-frames *wm-application*)))
+      (doors::com-goto-wm-interactor)))
+
 (defun event-handler (&key display event-window window kind event-key code state mode time
                         type width height x y root-x root-y
                         data override-redirect-p send-event-p
@@ -61,6 +67,10 @@
                         request first-keycode count value-mask child
                         &allow-other-keys)
   (declare (ignore first-keycode count))
+  (when (eq event-key :focus-out)
+    (when  (eq :none (xlib:input-focus display))
+      (ensure-focus-frame))
+    (return-from event-handler (maybe-funcall *wait-function*)))
   (when (eql event-key :configure-request)
     (let ((sheet (and window
                       (or (port-lookup-sheet *doors-port* window)

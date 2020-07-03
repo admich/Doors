@@ -113,7 +113,8 @@
               (grab/ungrab-keystroke key))
 		     ;; (xlib:intern-atom  (clim-clx::clx-port-window (find-port)) :_MOTIF_WM_HINTS)
 		    
-         (setf (xlib:window-event-mask (clim-clx::clx-port-window (find-port))) '(:substructure-notify :substructure-redirect))
+         (setf (xlib:window-event-mask (clim-clx::clx-port-window (find-port)))
+               '(:substructure-notify :substructure-redirect :focus-change))
          #+clx-ext-randr
          (xlib:rr-select-input (clim-clx::clx-port-window (find-port)) '(:screen-change-notify-mask :crtc-change-notify-mask))
          (call-next-method))
