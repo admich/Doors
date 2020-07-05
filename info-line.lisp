@@ -27,27 +27,6 @@
   ((set :initarg :set :accessor battery-set :initform nil))
   (:default-initargs :name "ALL"))
 
-(define-presentation-type battery () :options ((what-present :name)) :inherit-from 'standard-object)
-
-(define-presentation-method present (object (type battery) stream view &key)
-  (case what-present
-    (:name (format stream "~a" (battery-name object)))
-    (:long (format stream "~a: ~a, ~d%"
-                   (battery-name object)
-                   (battery-status object)
-                   (round (battery-% object)))
-           (unless (string= "UNKNOWN" (battery-status object))
-             (format stream " ~{~2,'0d~^:~} remaining" (battery-remaining-time object))))
-    (t (let* ((percent (battery-% object))
-         (ink (cond
-                ((< percent 20) +red+)
-                ((< 20 percent 50) +orange+)
-                (t +foreground-ink+))))
-         (write-string "[" stream)
-         (with-drawing-options (stream :ink ink)
-           (format stream "~d%~:[-~;+~]" (round percent) (battery-charging-p object)))
-         (write-string "] " stream)))))
-
 (defun read-sysfs (bat file)
   (read-from-string
    (string-trim '(#\Newline)
@@ -109,14 +88,27 @@
 (define-presentation-action battery-menu
     (battery nil doors
              :documentation "View batteries"
-             :pointer-documentation ((object stream) (present object '((battery) :what-present :long) :stream stream))
+             :pointer-documentation ((object stream)
+                                     (format stream "~a: ~a, ~d%"
+                                             (battery-name object)
+                                             (battery-status object)
+                                             (round (battery-% object)))
+                                     (unless (string= "UNKNOWN" (battery-status object))
+                                       (format stream " ~{~2,'0d~^:~} remaining" (battery-remaining-time object))))
              :menu nil
              :gesture :select
              :tester ((object)
                       (typep object 'battery-set)))
     (object)
   (menu-choose (map 'list (lambda (x)
-                            (list (present-to-string x '((battery) :what-present :long)) :value t))
+                            (list (with-output-to-string (stream)
+                                    (format stream "~a: ~a, ~d%"
+                                             (battery-name x)
+                                             (battery-status x)
+                                             (round (battery-% x)))
+                                     (unless (string= "UNKNOWN" (battery-status x))
+                                       (format stream " ~{~2,'0d~^:~} remaining" (battery-remaining-time x))))
+                                  :value t))
                     (battery-set object))
                :scroll-bars nil
                :y-spacing 10
