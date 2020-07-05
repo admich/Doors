@@ -26,6 +26,8 @@
    (active-frame :initform nil :accessor active-frame)))
 
 (defmethod (setf active-frame) :after (frame (port doors-port))
+  (unless (eql :enabled (frame-state frame))
+    (enable-frame frame))
   (raise-frame frame)
   (when (frame-standard-input frame)
     (stream-set-input-focus (frame-standard-input frame))))
