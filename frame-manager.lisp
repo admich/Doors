@@ -27,6 +27,9 @@
 (defclass doors-stack-frame-manager (doors-frame-manager)
   ())
 
+(defclass doors-desktop-frame-manager (doors-stack-frame-manager)
+  ())
+
 (defclass doors-tile-frame-manager (doors-frame-manager)
   ())
 
@@ -43,6 +46,7 @@
              (case fm-type
                (:fullscreen (typep frame-manager 'doors-fullscreen-frame-manager))
                (:stack (typep frame-manager 'doors-stack-frame-manager))
+               (:desktop (typep frame-manager 'doors-desktop-frame-manager))
                (:onroot (typep frame-manager 'doors-onroot-frame-manager))
                (:tile (typep frame-manager 'doors-tile-frame-manager)))
              t))))

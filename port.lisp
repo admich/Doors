@@ -72,6 +72,9 @@
 	  (slot-value port 'frame-managers))
     (push (apply #'make-instance 'doors-stack-frame-manager
 		 :port port options)
+          (slot-value port 'frame-managers))
+    (push (apply #'make-instance 'doors-desktop-frame-manager
+		 :port port options)
 	  (slot-value port 'frame-managers))
     (setf (slot-value port 'pointer)
 	  (make-instance 'doors-pointer :port port))))

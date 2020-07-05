@@ -49,9 +49,8 @@
      appending (frame-manager-frames fm)))
 
 (defmethod default-frame-top-level :around ((frame doors) &key &allow-other-keys)
-  (with-frame-manager ((find-frame-manager :port (port frame) :fm-type :stack))
+  (with-frame-manager ((find-frame-manager :port (port frame) :fm-type :desktop))
     (call-next-method)))
-
 
 ;; ;;; The parameter STATE is a bit mask represented as the logical OR
 ;; ;;; of individual bits.  Each bit corresponds to a modifier or a
@@ -213,7 +212,7 @@
     ((frame 'application-frame :default (active-frame (port *application-frame*))))
   (if (typep (frame-manager frame) 'clim-doors::doors-fullscreen-frame-manager)
       (progn
-        (setf (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :stack)))
+        (setf (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :desktop)))
       (progn
         (save-frame-geometry frame)
         (setf (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :fullscreen))))
@@ -228,7 +227,7 @@
 (define-doors-command-with-grabbed-keystroke (com-maximize :name t :keystroke (#\m :super))
     ()
   (let ((frame  (active-frame (port *application-frame*))))
-    (when (and (member frame (managed-frames)) (eql (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :stack)))
+    (when (and (member frame (managed-frames)) (eql (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :desktop)))
       (let* ((tls (frame-top-level-sheet frame))
              (desktop-region (sheet-region (find-pane-named *wm-application* 'desktop)))
              (w (bounding-rectangle-width desktop-region))
