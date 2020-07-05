@@ -83,27 +83,24 @@
       (disown-frame old-manager frame))
     (when fm (adopt-frame fm frame))))
 
-;; compared to stanard mccclim method this one doesn't generate a new
-;; top-level-sheet if it is already present
-(defmethod adopt-frame ((fm frame-manager) (frame application-frame))
-  (setf (slot-value fm 'frames) (cons frame (slot-value fm 'frames)))
-  (setf (%frame-manager frame) fm)
-  (setf (port frame) (port fm))
-  (setf (graft frame) (find-graft :port (port frame)))
-  (let ((*application-frame* frame)
-        (event-queue (frame-event-queue frame)))
-    (unless (frame-top-level-sheet frame)
-      (setf (slot-value frame 'top-level-sheet)
-            (make-pane-1 fm frame 'top-level-sheet-pane
-                         :name (frame-name frame)
-                         :pretty-name (frame-pretty-name frame)
-                         ;; sheet is enabled from enable-frame
-                         :enabled-p nil)))
-    (generate-panes fm frame)
-    (setf (slot-value frame 'state) :disabled)
-    (when (typep event-queue 'event-queue)
-      (setf (event-queue-port event-queue) (port fm)))
-    frame))
+;; compared to stanard mccclim method here (frame-panes frame) can be
+;; not a direct child of the top-level-sheet but some panes could be
+;; in the middle (e.g. layout container for wm ornament)
+(defmethod generate-panes :before (fm  (frame application-frame))
+  (declare (ignore fm))
+  (when (and (frame-panes frame) (sheet-parent (frame-panes frame)))
+    (sheet-disown-child (sheet-parent (frame-panes frame))(frame-panes frame)))
+  (loop for (nil . pane) in (frame-panes-for-layout frame)
+        for parent = (sheet-parent pane)
+        if  parent
+     do (sheet-disown-child parent pane)))
+
+;; compared to stanard mccclim method here I don't do nothing, the
+;; top-level-sheet adopt the (frame-panes frame) not here but in the
+;; adopt-frame
+(defmethod generate-panes :after (fm (frame application-frame))
+  (declare (ignore fm)))
+
 
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)

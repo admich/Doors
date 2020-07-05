@@ -111,16 +111,7 @@
   (declare (ignore view))
   (format stream " ~a " (frame-pretty-name object)))
 
-(defmethod generate-panes ((fm doors-stack-frame-manager) (frame application-frame))
-  (call-next-method)
-  (with-look-and-feel-realization (fm frame)
-    (let ((frame-panes (frame-panes frame))
-          (ornaments-pane (make-pane 'wm-ornaments-pane
-                                     :managed-frame frame
-                                     :foreground +white+ :background +blue+ :height 20 :max-height 20 :min-height 20)))
-      (setf (frame-panes frame) (vertically () ornaments-pane frame-panes)))))
-
-(defmethod disown-frame ((fm doors-stack-frame-manager) (frame application-frame))
+(defmethod disown-frame ((fm doors-frame-manager) (frame application-frame))
   (alexandria:when-let* ((event-queue (climi::frame-event-queue frame))
                          (calling-frame (climi::frame-calling-frame frame))
                          (calling-queue (climi::frame-event-queue calling-frame))
@@ -129,10 +120,69 @@
   (setf (slot-value fm 'climi::frames) (remove frame (slot-value fm 'climi::frames)))
   (sheet-disown-child (sheet-parent (frame-top-level-sheet frame))
                       (frame-top-level-sheet frame))
+  (sheet-disown-child (frame-top-level-sheet frame)
+                      (car (sheet-children (frame-top-level-sheet frame))))
   (setf (climi::%frame-manager frame) nil)
   (setf (slot-value frame 'climi::state) :disowned)
+  (setf (slot-value frame 'climi::top-level-sheet) nil)
   (port-force-output (port fm))
   frame)
+
+(defmethod adopt-frame ((fm doors-frame-manager) (frame application-frame))
+  (setf (slot-value fm 'climi::frames) (cons frame (slot-value fm 'climi::frames)))
+  (setf (climi::%frame-manager frame) fm)
+  (setf (port frame) (port fm))
+  (setf (graft frame) (find-graft :port (port frame)))
+  (let ((*application-frame* frame)
+        (event-queue (climi::frame-event-queue frame)))
+    (generate-panes fm frame)
+    (setf (slot-value frame 'climi::top-level-sheet)
+          (find-pane-for-frame fm frame))
+    (let ((top-level-sheet (frame-top-level-sheet frame)))
+      (unless (sheet-parent top-level-sheet)
+        (sheet-adopt-child (graft frame) top-level-sheet))
+      ;; Find the size of the new frame
+      (multiple-value-bind (w h) (climi::frame-geometry* frame)
+        ;; automatically generates a window-configuation-event
+        ;; which then calls allocate-space
+        ;;
+        ;; Not any longer, we turn off CONFIGURE-NOTIFY events until the
+        ;; window is mapped and do the space allocation now, so that all
+        ;; sheets will have their correct geometry at once. --GB
+        (change-space-requirements top-level-sheet :width w :height h
+                                   :resize-frame t)
+        (setf (sheet-region top-level-sheet) (make-bounding-rectangle 0 0 w h))
+        (allocate-space top-level-sheet w h)))
+    (setf (slot-value frame 'climi::state) :disabled)
+    (when (typep event-queue 'climi::event-queue)
+      (setf (climi::event-queue-port event-queue) (port fm)))
+    frame))
+
+(defmethod find-pane-for-frame ((fm doors-frame-manager) (frame application-frame))
+  (if (frame-top-level-sheet frame)
+      (frame-top-level-sheet frame)
+      (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
+                              :name (frame-name frame)
+                              :pretty-name (frame-pretty-name frame)
+                              ;; sheet is enabled from enable-frame
+                              :enabled-p nil)))
+        (sheet-adopt-child tls (frame-panes frame))
+        tls)))
+
+(defmethod find-pane-for-frame ((fm doors-stack-frame-manager) (frame application-frame))
+  (if (frame-top-level-sheet frame)
+      (frame-top-level-sheet frame)
+      (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
+                              :name (frame-name frame)
+                              :pretty-name (frame-pretty-name frame)
+                              ;; sheet is enabled from enable-frame
+                              :enabled-p nil))
+            (frame-panes (frame-panes frame))
+            (ornaments-pane (make-pane-1 fm frame 'wm-ornaments-pane
+                                         :managed-frame frame
+                                         :foreground +white+ :background +blue+ :height 20 :max-height 20 :min-height 20)))
+        (sheet-adopt-child tls (vertically () ornaments-pane frame-panes))
+        tls)))
 
 (defmethod adopt-frame :after ((fm doors-fullscreen-frame-manager) (frame application-frame))
   (let ((t-l-s (frame-top-level-sheet frame)))
