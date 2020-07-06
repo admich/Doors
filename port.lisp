@@ -95,7 +95,6 @@
 (defmethod port-keyboard-input-focus ((port doors-port))
   (%port-keyboard-input-focus port))
 
-
 (defmethod (setf port-keyboard-input-focus) (focus (port doors-port))
   (let ((old-focus (port-keyboard-input-focus port))
         (mirror (sheet-mirror focus)))
