@@ -95,11 +95,41 @@
         if  parent
      do (sheet-disown-child parent pane)))
 
-;; compared to stanard mccclim method here I don't do nothing, the
+;; compared to standard mccclim method here I don't do nothing, the
 ;; top-level-sheet adopt the (frame-panes frame) not here but in the
 ;; adopt-frame
 (defmethod generate-panes :after (fm (frame application-frame))
   (declare (ignore fm)))
+
+;;; compared to standard mccclim method here I ensure that the
+;;; top-level-sheet is an ancestor of frame-pane. This is done by
+;;; find-pane-for-frame.
+(defmethod (setf frame-current-layout) :around (name (frame application-frame))  
+  (unless (eql name (frame-current-layout frame))
+    (call-next-method)
+    (alexandria:when-let ((fm (frame-manager frame)))
+      (generate-panes fm frame)
+      (setf (slot-value frame 'climi::top-level-sheet)
+            (find-pane-for-frame (frame-manager frame) frame))
+       (layout-frame frame)
+       (signal 'frame-layout-changed :frame frame))))
+
+;;; compared to standard mccclim method here the layout protocol is
+;;; invoked on top-level-sheet and not on frame-panes.
+(defmethod layout-frame ((frame application-frame) &optional width height)
+  (when (and (or width height)
+             (not (and width height)))
+    (error "LAYOUT-FRAME must be called with both WIDTH and HEIGHT or neither"))
+  (with-inhibited-dispatch-repaint ()
+    (let ((tls (frame-top-level-sheet frame)))
+      (when (and (null width) (null height))
+        (let ((space (compose-space tls)))
+          (setq width (space-requirement-width space))
+          (setq height (space-requirement-height space))))
+      (unless (and (= width (bounding-rectangle-width tls))
+                   (= height (bounding-rectangle-height tls)))
+        (resize-sheet tls width height))
+      (allocate-space tls width height))))
 
 
 (in-package :clim-xcommon)

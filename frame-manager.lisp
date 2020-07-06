@@ -159,20 +159,28 @@
     frame))
 
 (defmethod find-pane-for-frame ((fm doors-frame-manager) (frame application-frame))
-  (if (frame-top-level-sheet frame)
-      (frame-top-level-sheet frame)
-      (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
+  (cond
+    ((and (frame-top-level-sheet frame) (sheet-ancestor-p (frame-panes frame) (frame-top-level-sheet frame)))
+     (frame-top-level-sheet frame))
+    ((frame-top-level-sheet frame)
+     (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
+     (frame-top-level-sheet frame))
+    (t (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
                               :name (frame-name frame)
                               :pretty-name (frame-pretty-name frame)
                               ;; sheet is enabled from enable-frame
                               :enabled-p nil)))
         (sheet-adopt-child tls (frame-panes frame))
-        tls)))
+        tls))))
 
 (defmethod find-pane-for-frame ((fm doors-stack-frame-manager) (frame application-frame))
-  (if (frame-top-level-sheet frame)
-      (frame-top-level-sheet frame)
-      (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
+  (cond
+    ((and (frame-top-level-sheet frame) (sheet-ancestor-p (frame-panes frame) (frame-top-level-sheet frame)))
+     (frame-top-level-sheet frame))
+    ((frame-top-level-sheet frame)
+     (sheet-adopt-child (car (sheet-children (frame-top-level-sheet frame))) (frame-panes frame))
+     (frame-top-level-sheet frame))
+    (t (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
                               :name (frame-name frame)
                               :pretty-name (frame-pretty-name frame)
                               ;; sheet is enabled from enable-frame
@@ -182,7 +190,7 @@
                                          :managed-frame frame
                                          :foreground +white+ :background +blue+ :height 20 :max-height 20 :min-height 20)))
         (sheet-adopt-child tls (vertically () ornaments-pane frame-panes))
-        tls)))
+        tls))))
 
 (defmethod adopt-frame :after ((fm doors-fullscreen-frame-manager) (frame application-frame))
   (let ((t-l-s (frame-top-level-sheet frame)))
