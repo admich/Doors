@@ -26,11 +26,12 @@
    (active-frame :initform nil :accessor active-frame)))
 
 (defmethod (setf active-frame) :after (frame (port doors-port))
-  (unless (eql :enabled (frame-state frame))
+  (when (member (frame-state frame) '(:disabled :shrunk))
     (enable-frame frame))
-  (raise-frame frame)
-  (when (frame-standard-input frame)
-    (stream-set-input-focus (frame-standard-input frame))))
+  (when (eql (frame-state frame) :enabled)
+      (raise-frame frame)
+      (when (frame-standard-input frame)
+        (stream-set-input-focus (frame-standard-input frame)))))
 
 (defmethod port-lookup-sheet :around ((port doors-port) mirror)
   (if (xlib:window-equal mirror (sheet-mirror (graft port)))
