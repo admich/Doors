@@ -140,7 +140,7 @@
           (find-pane-for-frame fm frame))
     (let ((top-level-sheet (frame-top-level-sheet frame)))
       (unless (sheet-parent top-level-sheet)
-        (sheet-adopt-child (graft frame) top-level-sheet))
+        (sheet-adopt-child (find-frame-container fm frame) top-level-sheet))
       ;; Find the size of the new frame
       (multiple-value-bind (w h) (climi::frame-geometry* frame)
         ;; automatically generates a window-configuation-event
@@ -157,6 +157,13 @@
     (when (typep event-queue 'climi::event-queue)
       (setf (climi::event-queue-port event-queue) (port fm)))
     frame))
+
+(defmethod find-frame-container ((fm doors-frame-manager) (frame application-frame))
+  (graft frame))
+
+(defmethod find-frame-container ((fm doors-desktop-frame-manager) (frame application-frame))
+  (find-pane-named *wm-application* 'doors::desktop))
+
 
 (defmethod find-pane-for-frame ((fm doors-frame-manager) (frame application-frame))
   (cond
@@ -206,7 +213,7 @@
                            (top climi::geometry-top)
                            (width climi::geometry-width)
                            (height climi::geometry-height)) frame
-                (setf left x
-                      top y
-                      width w
-                      height h))))))
+                (setf left (round x)
+                      top (round y)
+                      width (round w)
+                      height (round h)))))))
