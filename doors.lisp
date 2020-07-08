@@ -43,14 +43,24 @@
             (without-interactor (vertically (:width (graft-width (find-graft)) :height (graft-height (find-graft)))
                                   (:fill desktop) pointer-doc (horizontally () (:fill info) tray)))))
 
+(defmethod default-frame-top-level :around ((frame doors) &key &allow-other-keys)
+  (with-frame-manager ((find-frame-manager :port (port frame) :fm-type :desktop))
+    (call-next-method)))
+
 (defun managed-frames (&optional (wm *wm-application*))
   (loop for fm in (climi::frame-managers (port wm))
      unless (eql fm (frame-manager wm))
      appending (frame-manager-frames fm)))
 
-(defmethod default-frame-top-level :around ((frame doors) &key &allow-other-keys)
-  (with-frame-manager ((find-frame-manager :port (port frame) :fm-type :desktop))
-    (call-next-method)))
+(defmethod dispatch-event ((client doors) event)
+  (queue-event client event))
+
+(defmethod handle-event ((client doors) (event window-manager-configuration-request-event))
+  (grant-configure-request event))
+
+(defmethod handle-event ((client doors) (event window-manager-map-request-event))
+  (unless (port-lookup-foreign-sheet (port client) (window-manager-map-request-event-window event))
+	       (make-foreign-application (window-manager-map-request-event-window event))))
 
 ;; ;;; The parameter STATE is a bit mask represented as the logical OR
 ;; ;;; of individual bits.  Each bit corresponds to a modifier or a

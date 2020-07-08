@@ -83,7 +83,19 @@
   (:export
    #:*wm-application*
    #:active-frame
-   #:save-frame-geometry))
+   #:save-frame-geometry
+   #:window-manager-request-event
+   #:window-manager-configuration-request-event
+   #:window-manager-configuration-request-event-window
+   #:window-manager-configuration-request-event-native-x
+   #:window-manager-configuration-request-event-native-y
+   #:window-manager-configuration-request-event-width
+   #:window-manager-configuration-request-event-height
+   #:window-manager-map-request-event
+   #:window-manager-map-request-event-window
+   #:grant-configure-request
+   #:port-lookup-foreign-sheet
+   #:make-foreign-application))
 
 (defpackage #:doors
   (:use #:clim-lisp #:clim #:clim-doors)

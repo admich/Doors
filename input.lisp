@@ -17,19 +17,27 @@
 
 (in-package :clim-doors)
 
-(climi::define-event-class window-manager-configuration-request-event (window-manager-event)
+(climi::define-event-class window-manager-request-event (window-manager-event)
+  ())
+
+(climi::define-event-class window-manager-configuration-request-event (window-manager-request-event)
   ((window :initarg :window :reader window-manager-configuration-request-event-window)
    (x :initarg :x :reader window-manager-configuration-request-event-native-x)
    (y :initarg :y :reader window-manager-configuration-request-event-native-y)
    (width :initarg :width :reader window-manager-configuration-request-event-width)
    (height :initarg :height :reader window-manager-configuration-request-event-height)))
 
-(climi::define-event-class window-manager-map-request-event (window-manager-event)
+(climi::define-event-class window-manager-map-request-event (window-manager-request-event)
   ((window :initarg :window :reader window-manager-map-request-event-window)))
 
-;;; change dispatch and then handle-event
-(defmethod distribute-event ((port doors-port) (event window-manager-configuration-request-event))
-  (grant-configure-request event))
+(defun grant-configure-request (event)
+  "grant the configure request"
+  (with-slots (window x y width height) event
+    (xlib:with-state (window)
+      (when x (setf (xlib:drawable-x window) x))
+      (when y (setf (xlib:drawable-y window) y))
+      (when width (setf (xlib:drawable-width window) width))
+      (when height (setf (xlib:drawable-height window) height)))))
 
 (defmethod distribute-event ((port doors-port) (event keyboard-event))
   (let  ((sheet (event-sheet event)))
@@ -94,7 +102,7 @@
                           (port-lookup-foreign-sheet *doors-port* window)))))
          (return-from event-handler
            (make-instance 'window-manager-configuration-request-event
-                          :sheet (or sheet (find-graft))
+                          :sheet (or sheet *wm-application*)
                           :window window
                           :x (and (= 1 (logand value-mask 1)) x)
                           :y (and (= 2 (logand value-mask 2)) y)
@@ -104,10 +112,9 @@
        (xlib:mapping-notify display request 0 0)
        (return-from event-handler (maybe-funcall *wait-function*)))
       ((:map-request)
-       (unless (port-lookup-foreign-sheet *doors-port* window)
-	       (make-foreign-application window))
-       (return-from event-handler (maybe-funcall *wait-function*)))
-      ;;; inside when-let
+       (make-instance 'window-manager-map-request-event
+                      :sheet *wm-application*
+                      :window window))
       ((:key-press :key-release)
        (with-sheet-from-window (sheet)
          (multiple-value-bind (keyname modifier-state keysym-name)

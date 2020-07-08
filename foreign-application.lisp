@@ -55,8 +55,9 @@
       (configure-foreign-application foreign-pane))))
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-configuration-request-event))
-  (grant-configure-request event)
-  (note-sheet-region-changed pane))
+  ()
+  (with-slots (window x y width height) event
+    (layout-frame *application-frame* width height)))
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-delete-event))
   (frame-exit (pane-frame pane)))
@@ -138,15 +139,6 @@
     (xlib:with-server-grabbed ((clim-clx::clx-port-display (port frame-manager)))
 			      (xlib:reparent-window window parent-window 0 0)
 			      (xlib:map-window window))))
-
-(defun grant-configure-request (event)
-    "grant the configure request"
-  (with-slots (window x y width height) event
-    (xlib:with-state (window)
-      (when x (setf (xlib:drawable-x window) x))
-      (when y (setf (xlib:drawable-y window) y))
-      (when width (setf (xlib:drawable-width window) width))
-      (when height (setf (xlib:drawable-height window) height)))))
 
 (defun make-foreign-application (&optional window)
   (let ((frame (make-application-frame 'foreign-application :foreign-xwindow window)))
