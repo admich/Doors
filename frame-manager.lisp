@@ -64,7 +64,7 @@
                           :max-height 15))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-enter-event))
-  (clime:frame-display-pointer-documentation-string *wm-application* "R: Move  L: Resize"))
+  (clime:frame-display-pointer-documentation-string *wm-application* "L: Move  R: Resize"))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-exit-event))
   (clime:frame-display-pointer-documentation-string *wm-application* ""))

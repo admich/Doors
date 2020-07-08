@@ -131,6 +131,11 @@
         (resize-sheet tls width height))
       (allocate-space tls width height))))
 
+;;; compared to mcclim we don't need to do nothing here
+(defmethod handle-event ((sheet top-level-sheet-pane)
+                         (event window-configuration-event))
+  '())
+
 
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)
