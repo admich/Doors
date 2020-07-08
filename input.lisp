@@ -43,13 +43,19 @@
 (defmethod process-next-event ((port doors-port) &key wait-function (timeout nil))
   (let ((*doors-port* port)
         (*wait-function* wait-function))
+    (when (maybe-funcall wait-function)
+      (return-from process-next-event
+        (values nil :wait-function)))
     (let ((event (xlib:process-event (clx-port-display port)
                                      :timeout timeout
                                      :handler #'event-handler
                                      :discard-p t
                                      :force-output-p t)))
       (case event
-        ((nil) (values nil :timeout))
+        ((nil)
+         (if (maybe-funcall wait-function)
+             (values nil :wait-function)
+             (values nil :timeout)))
         ((t)   (values nil :wait-function))
         (otherwise
          (prog1 t (distribute-event port event)))))))
@@ -67,38 +73,44 @@
                         request first-keycode count value-mask child
                         &allow-other-keys)
   (declare (ignore first-keycode count))
-  (when (eq event-key :focus-out)
-    (when  (eq :none (xlib:input-focus display))
-      (xlib:set-input-focus (clim-clx::clx-port-display (port *wm-application*))
-                            (sheet-mirror (graft *wm-application*))
-                            :parent)
-      (ensure-focus-frame))
-    (return-from event-handler (maybe-funcall *wait-function*)))
-  (when (eql event-key :configure-request)
-    (let ((sheet (and window
+  (macrolet ((with-sheet-from-window
+                 ((sheet) &body body)
+		     `(when-let ((,sheet (and window
+                                (or (port-lookup-sheet *doors-port* window)
+                                    (port-lookup-foreign-sheet *doors-port* window)))))
+                ,@body)))
+    (case event-key
+      ((:focus-out)
+       (when  (eq :none (xlib:input-focus display))
+         (xlib:set-input-focus (clim-clx::clx-port-display (port *wm-application*))
+                               (sheet-mirror (graft *wm-application*))
+                               :parent)
+         (ensure-focus-frame)
+         (return-from event-handler (maybe-funcall *wait-function*))))
+      ((:configure-request)
+       ;;; maybe I can use with-sheet-from-window here
+       (let ((sheet (and window
                       (or (port-lookup-sheet *doors-port* window)
                           (port-lookup-foreign-sheet *doors-port* window)))))
-      (return-from event-handler
-      (make-instance 'window-manager-configuration-request-event
-                     :sheet (or sheet (find-graft))
-                     :window window
-                     :x (and (= 1 (logand value-mask 1)) x)
-                     :y (and (= 2 (logand value-mask 2)) y)
-                     :width (and (= 4 (logand value-mask 4)) width)
-                     :height (and (= 8 (logand value-mask 8)) height)))))
-  (when (eql event-key :mapping-notify)
-    (xlib:mapping-notify display request 0 0)
-    (return-from event-handler (maybe-funcall *wait-function*)))
-  (when (eql event-key :map-request)
-    (unless (port-lookup-foreign-sheet *doors-port* window)
+         (return-from event-handler
+           (make-instance 'window-manager-configuration-request-event
+                          :sheet (or sheet (find-graft))
+                          :window window
+                          :x (and (= 1 (logand value-mask 1)) x)
+                          :y (and (= 2 (logand value-mask 2)) y)
+                          :width (and (= 4 (logand value-mask 4)) width)
+                          :height (and (= 8 (logand value-mask 8)) height)))))
+      ((:mapping-notify)
+       (xlib:mapping-notify display request 0 0)
+       (return-from event-handler (maybe-funcall *wait-function*)))
+      ((:map-request)
+       (unless (port-lookup-foreign-sheet *doors-port* window)
 	       (make-foreign-application window))
-    (return-from event-handler (maybe-funcall *wait-function*)))
-  (when-let ((sheet (and window
-                         (or (port-lookup-sheet *doors-port* window)
-                             (port-lookup-foreign-sheet *doors-port* window)))))
-    (case event-key
+       (return-from event-handler (maybe-funcall *wait-function*)))
+      ;;; inside when-let
       ((:key-press :key-release)
-       (multiple-value-bind (keyname modifier-state keysym-name)
+       (with-sheet-from-window (sheet)
+         (multiple-value-bind (keyname modifier-state keysym-name)
            (clim-clx::x-event-to-key-name-and-modifiers *doors-port*
                                                         event-key code state)
          (make-instance (if (eq event-key :key-press)
@@ -111,12 +123,13 @@
                         :graft-y root-y
                         :sheet (or (and (graftp sheet) (frame-query-io *wm-application*))
                                    (frame-properties (pane-frame sheet) 'focus) sheet)
-                        :modifier-state modifier-state :timestamp time)))
+                        :modifier-state modifier-state :timestamp time))))
       ((:button-press :button-release)
        ;; :button-press on a foreign-application change the focus on
        ;; that application and the click is replay on the foreign
        ;; application.
-       (unless (or (eq *wm-application* (pane-frame sheet))
+       (with-sheet-from-window (sheet)
+         (unless (or (eq *wm-application* (pane-frame sheet))
                    (and (eq (active-frame *doors-port*) (pane-frame sheet))
                         (not (eq (pane-frame sheet) (pane-frame (port-keyboard-input-focus *doors-port*))))))
          (setf (active-frame *doors-port*) (pane-frame sheet)))
@@ -156,7 +169,7 @@
                             :graft-x root-x
                             :graft-y root-y
                             :sheet sheet :modifier-state modifier-state
-                            :timestamp time))))
+                            :timestamp time)))))
       ((:leave-notify :enter-notify)
        ;; Ignore :{ENTER,LEAVE}-NOTIFY events of kind :INFERIOR unless
        ;; the mode is :[UN]GRAB.
@@ -172,42 +185,46 @@
        ;; The event kinds filtered here must be coordinated with the
        ;; processing in the DISTRIBUTE-EVENTS method for BASIC-PORT
        ;; and related methods.
-       (when (or (not (eq kind :inferior))
-                 (member mode '(:grab :ungrab)))
-         (make-instance (case event-key
-                          (:leave-notify (case mode
-                                           (:grab 'pointer-grab-leave-event)
-                                           (:ungrab 'pointer-ungrab-leave-event)
-                                           (t 'pointer-exit-event)))
-                          (:enter-notify (case mode
-                                           (:grab 'pointer-grab-enter-event)
-                                           (:ungrab 'pointer-ungrab-enter-event)
-                                           (t 'pointer-enter-event))))
-                        :pointer 0 :button code
-                        :x x :y y
-                        :graft-x root-x
-                        :graft-y root-y
-                        :sheet sheet
-                        :modifier-state (clim-xcommon:x-event-state-modifiers
-                                         *doors-port* state)
-                        :timestamp time)))
+       (with-sheet-from-window (sheet)
+         (when (or (not (eq kind :inferior))
+                   (member mode '(:grab :ungrab)))
+           (make-instance (case event-key
+                            (:leave-notify (case mode
+                                             (:grab 'pointer-grab-leave-event)
+                                             (:ungrab 'pointer-ungrab-leave-event)
+                                             (t 'pointer-exit-event)))
+                            (:enter-notify (case mode
+                                             (:grab 'pointer-grab-enter-event)
+                                             (:ungrab 'pointer-ungrab-enter-event)
+                                             (t 'pointer-enter-event))))
+                          :pointer 0 :button code
+                          :x x :y y
+                          :graft-x root-x
+                          :graft-y root-y
+                          :sheet sheet
+                          :modifier-state (clim-xcommon:x-event-state-modifiers
+                                           *doors-port* state)
+                          :timestamp time))))
       (:configure-notify
-       (make-instance 'window-configuration-event
-                             :sheet sheet
-                             :x x :y y :width width :height height))
-      (:destroy-notify
-       (make-instance 'window-destroy-event :sheet sheet))
-      (:motion-notify
-       (let ((modifier-state (clim-xcommon:x-event-state-modifiers *doors-port*
-                                                                   state)))
-         (make-instance 'pointer-motion-event
-                        :pointer 0 :button code
-                        :x x :y y
-                        :graft-x root-x
-                        :graft-y root-y
+       (with-sheet-from-window (sheet)
+         (make-instance 'window-configuration-event
                         :sheet sheet
-                        :modifier-state modifier-state
-                        :timestamp time)))
+                        :x x :y y :width width :height height)))
+      (:destroy-notify
+       (with-sheet-from-window (sheet)
+         (make-instance 'window-destroy-event :sheet sheet)))
+      (:motion-notify
+       (with-sheet-from-window (sheet)
+         (let ((modifier-state (clim-xcommon:x-event-state-modifiers *doors-port*
+                                                                     state)))
+           (make-instance 'pointer-motion-event
+                          :pointer 0 :button code
+                          :x x :y y
+                          :graft-x root-x
+                          :graft-y root-y
+                          :sheet sheet
+                          :modifier-state modifier-state
+                          :timestamp time))))
       ((:exposure :display :graphics-exposure)
        ;; Notes:
        ;; . Do not compare count with 0 here, last rectangle in an
@@ -223,24 +240,29 @@
        ;; :exposure event. I don't remember if it's CMUCL or SBCL. So the
        ;; :display event should be left in.
        ;;
-       (make-instance 'window-repaint-event
-                      :timestamp time
-                      :sheet sheet
-                      :region (make-rectangle* x y (+ x width) (+ y height))))
+       (with-sheet-from-window (sheet)
+         (make-instance 'window-repaint-event
+                        :timestamp time
+                        :sheet sheet
+                        :region (make-rectangle* x y (+ x width) (+ y height)))))
       ;; port processes selection events synchronously and there is
       ;; no event passed to the rest of the system.
       (:selection-notify
-       (clim-clx::process-selection-notify *doors-port* window target property selection time)
+       (with-sheet-from-window (sheet)
+         (clim-clx::process-selection-notify *doors-port* window target property selection time))
        (maybe-funcall *wait-function*))
       (:selection-clear
-       (clim-clx::process-selection-clear *doors-port* selection)
+       (with-sheet-from-window (sheet)
+         (clim-clx::process-selection-clear *doors-port* selection))
        (maybe-funcall *wait-function*))
       (:selection-request
-       (clim-clx::process-selection-request *doors-port* window sheet target property requestor selection time)
+       (with-sheet-from-window (sheet)
+         (clim-clx::process-selection-request *doors-port* window sheet target property requestor selection time))
        (maybe-funcall *wait-function*))
       (:client-message
-       (or (port-client-message sheet time type data)
-           (maybe-funcall *wait-function*)))
+       (with-sheet-from-window (sheet)
+         (or (port-client-message sheet time type data)
+             (maybe-funcall *wait-function*))))
       (t
        (unless (xlib:event-listen (clx-port-display *doors-port*))
          (xlib:display-force-output (clx-port-display *doors-port*)))
