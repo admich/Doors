@@ -38,10 +38,13 @@
    (interactor :interactor :height 24)
    (pointer-doc :pointer-documentation :scroll-bars nil)
    (tray (make-pane 'doors-systray:tray-pane :background +white+)))
-  (:layouts (with-interactor (vertically (:width (graft-width (find-graft)) :height (graft-height (find-graft)))
-                               (:fill desktop) (make-pane 'clime:box-adjuster-gadget)  interactor pointer-doc (horizontally () (:fill info) tray)))
-            (without-interactor (vertically (:width (graft-width (find-graft)) :height (graft-height (find-graft)))
-                                  (:fill desktop) pointer-doc (horizontally () (:fill info) tray)))))
+  (:layouts
+   (with-interactor
+       (vertically ()
+         (:fill desktop) (make-pane 'clime:box-adjuster-gadget)  interactor pointer-doc (horizontally () (:fill info) tray)))
+   (without-interactor
+       (vertically ()
+         (:fill desktop) pointer-doc (horizontally () (:fill info) tray)))))
 
 (defmethod default-frame-top-level :around ((frame doors) &key &allow-other-keys)
   (with-frame-manager ((find-frame-manager :port (port frame) :fm-type :desktop))
@@ -119,10 +122,10 @@
        (progn
          (load *config-file*)
          (loop for key in *grabbed-keystrokes* do
-              (grab/ungrab-keystroke key))
+              (grab/ungrab-keystroke key :port (port frame)))
          (call-next-method))
     (loop for key in *grabbed-keystrokes* do 
-      (grab/ungrab-keystroke key :ungrab t))))
+      (grab/ungrab-keystroke key :port (port frame) :ungrab t))))
 
 (defmethod run-frame-top-level :before ((frame doors) &key &allow-other-keys)
   (queue-event (find-pane-named frame 'info) (make-instance 'info-line-event :sheet frame)))
@@ -148,7 +151,7 @@
        (define-doors-command (,name ,@options)
        ,arguments ,@body)
        (when ',keystroke (pushnew ',keystroke *grabbed-keystrokes*))
-       (when *wm-application* (grab/ungrab-keystroke ',keystroke)))))
+       (when *wm-application* (grab/ungrab-keystroke ',keystroke :port (port *wm-application*))))))
 
 
 (defun find-foreign-application (win-class)
@@ -314,11 +317,11 @@
 
 (defun doors (&key new-process (port (find-port :server-path '(:doors :start-wm :on))))
   ;; maybe is necessary to control if therreis another instance
-  (let ((fm (find-frame-manager :port port :fm-type :onroot))
+  (let* ((fm (find-frame-manager :port port :fm-type :onroot))
         (frame (make-application-frame 'doors
                                        :frame-manager fm
-                                       :width (graft-width (find-graft))
-                                       :height (graft-height (find-graft)))))
+                                       :width (graft-width (find-graft :port port))
+                                       :height (graft-height (find-graft :port port)))))
     (setf *wm-application* frame)
     (if new-process
         (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name "Doors WM")
