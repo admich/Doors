@@ -92,7 +92,7 @@
 (setf (get :doors :port-type) 'doors-port)
 (setf (get :doors :server-path-parser) 'parse-doors-server-path)
 
-(defun initialize-wm (port &optional replace)
+(defun start-wm (port &optional replace)
   "Initialize the icccm and ewmh protocols"
   (let ((dpy (clx-port-display port))
         (root (clx-port-window port))
@@ -170,9 +170,10 @@ s
                                              :width 1 :height 1
                                              :x -10 :y -10
                                              :event-mask '(:property-change)))
+
     (case (getf options :start-wm)
-      (:on (initialize-wm port))
-      (:replace (initialize-wm port t)))))
+      (:on (start-wm port))
+      (:replace (start-wm port t)))))
 
 (defmethod make-graft ((port doors-port) &key (orientation :default) (units :device))
   (let ((graft (make-instance 'doors-graft
