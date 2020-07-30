@@ -17,13 +17,28 @@
 
 (in-package :clim-doors)
 
+(defparameter *wm-selection* "WM_S0")
+
 (defclass doors-pointer (clim-clx::clx-pointer)
   ())
 
 (defclass doors-port (mcclim-truetype::clx-ttf-port)
   ((foreign-mirror->sheet :initform (make-hash-table :test #'equalp))
    (focus :initform nil :accessor %port-keyboard-input-focus)
-   (active-frame :initform nil :accessor active-frame)))
+   (active-frame :initform nil :accessor active-frame)
+   (wm-selection-manager :accessor wm-selection-manager
+                         :initform nil)
+   (aux-xwindow :accessor port-aux-xwindow
+                         :initform nil)
+   (server-timestamp :accessor x-server-timestamp
+                     :initform 0)))
+
+(defun update-server-timestamp (port)
+  (when-let ((window (port-aux-xwindow port)))
+    (xlib:change-property window :wm_name '(0) :string 8)
+    (xlib:display-force-output (clx-port-display port))
+    (sleep 1)
+    (x-server-timestamp port)))
 
 (defmethod (setf active-frame) :after (frame (port doors-port))
   (when (member (frame-state frame) '(:disabled :shrunk))
@@ -55,10 +70,79 @@
   (remhash (xlib:window-id mirror) (slot-value port 'foreign-mirror->sheet))
   nil)
 
+(defun parse-doors-server-path (path)
+  (let* ((port-type (pop path))
+         (mirroring (clim-clx::mirror-factory (getf path :mirroring)))
+         (start-wm (getf path :start-wm :on))) ;; :on :off :replace
+    (remf path :mirroring)
+    (remf path :start-wm)
+    (if path
+        `(,port-type
+          :host ,(getf path :host "localhost")
+          :display-id ,(getf path :display-id 0)
+          :screen-id ,(getf path :screen-id 0)
+          :protocol ,(getf path :protocol :internet)
+          :start-wm ,start-wm
+          ,@(when mirroring (list :mirroring mirroring)))
+        (append (clim-clx::helpfully-automagic-clx-server-path port-type)
+                (list :start-wm start-wm)
+                (when mirroring
+                  (list :mirroring mirroring))))))
 
 (setf (get :doors :port-type) 'doors-port)
-(setf (get :doors :server-path-parser) 'clim-clx::parse-clx-server-path)
+(setf (get :doors :server-path-parser) 'parse-doors-server-path)
 
+(defun initialize-wm (port &optional replace)
+  "Initialize the icccm and ewmh protocols"
+  (let ((dpy (clx-port-display port))
+        (root (clx-port-window port))
+        timestamp)
+    (xlib:intern-atom dpy *wm-selection*)
+    (let ((old-wm (xlib:selection-owner dpy *wm-selection*))
+          (wm-sn-manager (xlib:create-window :parent root
+                                             :override-redirect :on
+                                             :width 1 :height 1
+                                             :x -10 :y -10
+                                             :event-mask '(:property-change))))
+      (setf timestamp (update-server-timestamp port))
+
+      (if (and old-wm (not replace))
+          (progn (xlib:destroy-window wm-sn-manager)
+                 (error "Another WM is running~%"))
+          (setf (xlib:selection-owner dpy *wm-selection* timestamp) wm-sn-manager))
+s
+      (when old-wm
+        (unless
+            (dotimes (i 5)
+              (handler-case (xlib:drawable-x old-wm)
+                (xlib:drawable-error ()
+                  (return t)))
+              (sleep 1))
+          (error "The old WM doesn't release the selection ownership.~%")))
+
+      (unless (and (xlib:selection-owner dpy *wm-selection*)
+                   (xlib:window-equal wm-sn-manager (xlib:selection-owner dpy *wm-selection*)))
+        (xlib:destroy-window wm-sn-manager)
+        (error "Failed to acquire WM selection ownership~%"))
+
+      (handler-case
+          (progn
+            (setf (xlib:window-event-mask root)
+                  '(:substructure-notify :substructure-redirect :focus-change))
+            (xlib:display-finish-output dpy))
+        (error ()
+          (xlib:destroy-window wm-sn-manager)
+          (error "A non ICCCM WM this running~%")))
+
+      (setf (wm-selection-manager port) wm-sn-manager)
+
+      (xlib:send-event root :client-message '(:structure-notify)
+                       :window root
+                       :type :MANAGER
+                       :format 32
+                       :data (list timestamp
+                                   (xlib:find-atom dpy *wm-selection*)
+                                   (xlib:window-id wm-sn-manager))))))
 
 (defmethod initialize-instance :after ((port doors-port) &rest args)
   (declare (ignore args))
@@ -80,7 +164,15 @@
 		 :port port options)
 	  (slot-value port 'frame-managers))
     (setf (slot-value port 'pointer)
-	  (make-instance 'doors-pointer :port port))))
+          (make-instance 'doors-pointer :port port))
+    (setf (port-aux-xwindow port) (xlib:create-window :parent (clx-port-window port)
+                                             :override-redirect :on
+                                             :width 1 :height 1
+                                             :x -10 :y -10
+                                             :event-mask '(:property-change)))
+    (case (getf options :start-wm)
+      (:on (initialize-wm port))
+      (:replace (initialize-wm port t)))))
 
 (defmethod make-graft ((port doors-port) &key (orientation :default) (units :device))
   (let ((graft (make-instance 'doors-graft

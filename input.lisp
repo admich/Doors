@@ -95,6 +95,11 @@
                                :parent)
          (ensure-focus-frame)
          (return-from event-handler (maybe-funcall *wait-function*))))
+      ((:property-notify)
+       (when-let ((win (port-aux-xwindow *doors-port*)))
+         (when (xlib:window-equal window win)
+           (setf (x-server-timestamp *doors-port*) time)))
+       (return-from event-handler (maybe-funcall *wait-function*)))
       ((:configure-request)
        ;;; maybe I can use with-sheet-from-window here
        (let ((sheet (and window

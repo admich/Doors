@@ -120,16 +120,9 @@
          (load *config-file*)
          (loop for key in *grabbed-keystrokes* do
               (grab/ungrab-keystroke key))
-		     ;; (xlib:intern-atom  (clim-clx::clx-port-window (find-port)) :_MOTIF_WM_HINTS)
-		    
-         (setf (xlib:window-event-mask (clim-clx::clx-port-window (find-port)))
-               '(:substructure-notify :substructure-redirect :focus-change))
-         #+clx-ext-randr
-         (xlib:rr-select-input (clim-clx::clx-port-window (find-port)) '(:screen-change-notify-mask :crtc-change-notify-mask))
          (call-next-method))
     (loop for key in *grabbed-keystrokes* do 
-         (grab/ungrab-keystroke key :ungrab t))))
-
+      (grab/ungrab-keystroke key :ungrab t))))
 
 (defmethod run-frame-top-level :before ((frame doors) &key &allow-other-keys)
   (queue-event (find-pane-named frame 'info) (make-instance 'info-line-event :sheet frame)))
@@ -319,14 +312,13 @@
          (state (cl-ppcre:scan-to-strings "\\[([0-9]*%)\\]" out)))
     (format (frame-query-io *application-frame*) "Audio Volume: ~a" state)))
 
-(defun doors (&key new-process)
+(defun doors (&key new-process (port (find-port :server-path '(:doors :start-wm :on))))
   ;; maybe is necessary to control if therreis another instance
-  (let* ((port (find-port))
-         (fm (find-frame-manager :port (find-port) :fm-type :onroot))
-         (frame (make-application-frame 'doors
-                                        :frame-manager fm
-                                        :width (graft-width (find-graft))
-                                        :height (graft-height (find-graft)))))
+  (let ((fm (find-frame-manager :port port :fm-type :onroot))
+        (frame (make-application-frame 'doors
+                                       :frame-manager fm
+                                       :width (graft-width (find-graft))
+                                       :height (graft-height (find-graft)))))
     (setf *wm-application* frame)
     (if new-process
         (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name "Doors WM")

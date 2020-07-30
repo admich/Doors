@@ -20,9 +20,8 @@
 (defparameter *wm-application* '())
 
 (defclass doors-frame-manager (clim-clx::clx-frame-manager)
-  ((class-gensym :initarg :class-gensym
-		 :initform (gensym "DOORS-")
-		 :reader class-gensym)))
+  ()
+  (:default-initargs :class-gensym (gensym "DOORS-")))
 
 (defclass doors-stack-frame-manager (doors-frame-manager)
   ())
