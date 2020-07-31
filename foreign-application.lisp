@@ -21,9 +21,11 @@
 				     ;extended-input-stream
 				     fundamental-character-input-stream
 				     ;fundamental-input-stream
-				     basic-gadget
-				     )
-  ((foreign-xwindow :initarg :foreign-xwindow :initform nil  :accessor foreign-xwindow)))
+				     basic-gadget)
+  ())
+
+(defmethod foreign-xwindow ((pane foreign-application-pane))
+  (foreign-xwindow (pane-frame pane)))
 
 (defun configure-foreign-application (foreign-pane)
   (let* ((xparent (sheet-mirror foreign-pane))
@@ -85,7 +87,7 @@
 
 (define-application-frame foreign-application ()
   ((foreign-xwindow :initarg :foreign-xwindow :initform nil :accessor foreign-xwindow))
-  (:panes (main (make-pane 'foreign-application-pane :foreign-xwindow (foreign-xwindow *application-frame*))))
+  (:panes (main (make-pane 'foreign-application-pane)))
   (:menu-bar nil)
   (:layouts (:default (vertically () main)))
   (:top-level (foreign-application-frame-top-level . nil)))
@@ -164,6 +166,5 @@
         (xlib:translate-coordinates window 0 0 root)
       (xlib:reparent-window window root x y))
     (port-unregister-foreign-application (port frame) pane window)
-    (setf (foreign-xwindow frame) nil)
-    (setf (foreign-xwindow pane) nil)))
+    (setf (foreign-xwindow frame) nil)))
 
