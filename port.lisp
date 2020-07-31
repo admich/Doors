@@ -70,27 +70,15 @@
   (remhash (xlib:window-id mirror) (slot-value port 'foreign-mirror->sheet))
   nil)
 
-(defun parse-doors-server-path (path)
-  (let* ((port-type (pop path))
-         (mirroring (clim-clx::mirror-factory (getf path :mirroring)))
-         (start-wm (getf path :start-wm :on))) ;; :on :off :replace
-    (remf path :mirroring)
-    (remf path :start-wm)
-    (if path
-        `(,port-type
-          :host ,(getf path :host "localhost")
-          :display-id ,(getf path :display-id 0)
-          :screen-id ,(getf path :screen-id 0)
-          :protocol ,(getf path :protocol :internet)
-          :start-wm ,start-wm
-          ,@(when mirroring (list :mirroring mirroring)))
-        (append (clim-clx::helpfully-automagic-clx-server-path port-type)
-                (list :start-wm start-wm)
-                (when mirroring
-                  (list :mirroring mirroring))))))
-
 (setf (get :doors :port-type) 'doors-port)
-(setf (get :doors :server-path-parser) 'parse-doors-server-path)
+(setf (get :doors :server-path-parser) 'clim-clx::parse-clx-server-path)
+
+(defun check-for-existing-window (port)
+  (let ((windows (xlib:query-tree (clx-port-window port))))
+    (loop for win in windows
+       unless (or (xlib:window-equal win (sheet-mirror (frame-top-level-sheet *wm-application*)))
+                  (eq (xlib:window-override-redirect win) :on)) do
+         (make-foreign-application win :frame-manager (find-frame-manager :port port)))))
 
 (defun start-wm (port &optional replace)
   "Initialize the icccm and ewmh protocols"
@@ -142,7 +130,8 @@
                        :format 32
                        :data (list timestamp
                                    (xlib:find-atom dpy *wm-selection*)
-                                   (xlib:window-id wm-sn-manager))))))
+                                   (xlib:window-id wm-sn-manager)))
+      (check-for-existing-window port))))
 
 (defun stop-wm (port)
   "Stop xwm"
@@ -180,11 +169,7 @@
                                              :override-redirect :on
                                              :width 1 :height 1
                                              :x -10 :y -10
-                                             :event-mask '(:property-change)))
-
-    (case (getf options :start-wm)
-      (:on (start-wm port))
-      (:replace (start-wm port t)))))
+                                             :event-mask '(:property-change)))))
 
 (defmethod make-graft ((port doors-port) &key (orientation :default) (units :device))
   (let ((graft (make-instance 'doors-graft

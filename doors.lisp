@@ -20,7 +20,7 @@
 
 ;; Xephyr -br -ac -noreset -screen 1920x1080 :1
 ;; (setf clim:*default-server-path* (list :doors :mirroring :single))
-(setf clim:*default-server-path* (list :doors ))
+(setf clim:*default-server-path* (list :doors))
 
 (swank/backend:install-debugger-globally #'clim-debugger:debugger)
 
@@ -29,7 +29,7 @@
 (defparameter *config-file* (merge-pathnames "doors/config.lisp" (uiop:xdg-config-home)))
 
 (define-application-frame doors ()
-  ()
+  ((start-wm :initarg :start-wm :initform :off :reader doors-start-wm))
   (:panes
    (desktop (make-pane :bboard-pane :background +gray+))
    (info :application
@@ -63,7 +63,7 @@
 
 (defmethod handle-event ((client doors) (event window-manager-map-request-event))
   (unless (port-lookup-foreign-sheet (port client) (window-manager-map-request-event-window event))
-	       (make-foreign-application (window-manager-map-request-event-window event))))
+    (make-foreign-application (window-manager-map-request-event-window event) :frame-manager (find-frame-manager :port (port client)))))
 
 ;; ;;; The parameter STATE is a bit mask represented as the logical OR
 ;; ;;; of individual bits.  Each bit corresponds to a modifier or a
@@ -118,14 +118,18 @@
 
 (defmethod run-frame-top-level :around ((frame doors)
                                         &key &allow-other-keys)
-  (unwind-protect
-       (progn
-         (load *config-file*)
-         (loop for key in *grabbed-keystrokes* do
-              (grab/ungrab-keystroke key :port (port frame)))
-         (call-next-method))
-    (loop for key in *grabbed-keystrokes* do 
-      (grab/ungrab-keystroke key :port (port frame) :ungrab t))))
+  (let ((port (port frame)))
+    (unwind-protect
+         (progn
+           (case (doors-start-wm frame)
+             (:on (start-wm port))
+             (:replace (start-wm port t)))
+           (load *config-file*)
+           (loop for key in *grabbed-keystrokes* do
+                (grab/ungrab-keystroke key :port port))
+           (call-next-method))
+      (loop for key in *grabbed-keystrokes* do
+           (grab/ungrab-keystroke key :port port :ungrab t)))))
 
 (defmethod run-frame-top-level :before ((frame doors) &key &allow-other-keys)
   (queue-event (find-pane-named frame 'info) (make-instance 'info-line-event :sheet frame)))
@@ -315,11 +319,12 @@
          (state (cl-ppcre:scan-to-strings "\\[([0-9]*%)\\]" out)))
     (format (frame-query-io *application-frame*) "Audio Volume: ~a" state)))
 
-(defun doors (&key new-process (port (find-port :server-path '(:doors :start-wm :on))))
+(defun doors (&key new-process (port (find-port :server-path '(:doors))) (start-wm :on))
   ;; maybe is necessary to control if therreis another instance
   (let* ((fm (find-frame-manager :port port :fm-type :onroot))
         (frame (make-application-frame 'doors
                                        :frame-manager fm
+                                       :start-wm start-wm
                                        :width (graft-width (find-graft :port port))
                                        :height (graft-height (find-graft :port port)))))
     (setf *wm-application* frame)

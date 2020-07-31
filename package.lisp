@@ -95,7 +95,9 @@
    #:window-manager-map-request-event-window
    #:grant-configure-request
    #:port-lookup-foreign-sheet
-   #:make-foreign-application))
+   #:make-foreign-application
+   #:start-wm
+   #:stop-wm))
 
 (defpackage #:doors
   (:use #:clim-lisp #:clim #:clim-doors)
