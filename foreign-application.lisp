@@ -91,14 +91,16 @@
   (:top-level (foreign-application-frame-top-level . nil)))
 
 (defmethod (setf active-frame) :after ((frame foreign-application) (port doors-port))
-  (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
-                           (foreign-xwindow frame) :parent))
+  (when-let ((window (foreign-xwindow frame)))
+    (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
+                           window :parent)))
 
 (defmethod frame-pretty-name ((frame foreign-application))
   (multiple-value-bind (name class)
       (handler-case
           (xlib:get-wm-class (foreign-xwindow frame))
-        (xlib:window-error () (values "NoWin" "NoWin")))
+        (xlib:window-error () (values "NoWin" "NoWin"))
+        (type-error () (values "NoWin" "NoWin")))
       (or class "NoName")))
 
 (defmethod foreign-application-frame-top-level ((frame application-frame))
@@ -106,44 +108,60 @@
   (clim-extensions:simple-event-loop))
 
 (defmethod frame-exit :around ((frame foreign-application))
-  (let ((window (foreign-xwindow frame)))
+  (when-let ((window (foreign-xwindow frame)))
     ;; maybe is necessary also to remap window to root if window is not destroyed
     ;; is necessary to kill the window??
     (port-unregister-foreign-application (port frame) (find-pane-named frame 'main) window)
     (xlib:send-event window
-                   :client-message nil
-                   :window window
-                   :type :WM_PROTOCOLS
-                   :format 32
-                   :data (list (xlib:intern-atom (clim-clx::clx-port-display (port frame)) :WM_DELETE_WINDOW))))
+                     :client-message nil
+                     :window window
+                     :type :WM_PROTOCOLS
+                     :format 32
+                     :data (list (xlib:intern-atom (clx-port-display (port frame)) :WM_DELETE_WINDOW))))
   (call-next-method))
 
 (defmethod generate-panes :after ((fm doors-frame-manager) (frame foreign-application))
-  (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
-                           (foreign-xwindow frame) :parent))
+  (when-let ((window (foreign-xwindow frame)))
+    (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
+                           window :parent)))
 
 (defmethod disown-frame :before ((frame-manager doors-frame-manager) (frame foreign-application))
-  (xlib:reparent-window (foreign-xwindow frame) (sheet-mirror (graft frame)) 0 0))
+  (when-let ((window (foreign-xwindow frame)))
+    (xlib:reparent-window window (sheet-mirror (graft frame)) 0 0)))
 
 (defmethod adopt-frame :after ((frame-manager doors-frame-manager) (frame foreign-application))
   (let* ((window (foreign-xwindow frame))
          (pane (find-pane-named frame 'main))
          (parent-window (sheet-mirror pane)))
-    (port-register-foreign-application (port frame-manager) pane window)
-    (setf (xlib:window-event-mask parent-window) '(:substructure-notify :substructure-redirect))
+    (when window
+      (port-register-foreign-application (port frame-manager) pane window))
     (xlib:grab-button parent-window 1 '(:button-press)
                              :owner-p nil
                              :sync-pointer-p t
                              :sync-keyboard-p nil)
+    (setf (xlib:window-event-mask parent-window) '(:substructure-notify :substructure-redirect))
     (configure-foreign-application pane)
-    (xlib:with-server-grabbed ((clim-clx::clx-port-display (port frame-manager)))
-			      (xlib:reparent-window window parent-window 0 0)
-			      (xlib:map-window window))))
+    (when window
+      (xlib:with-server-grabbed ((clim-clx::clx-port-display (port frame-manager)))
+        (xlib:reparent-window window parent-window 0 0)
+        (xlib:map-window window)))))
 
 (defun make-foreign-application (&optional window)
   (let ((frame (make-application-frame 'foreign-application :foreign-xwindow window)))
     (setf (xlib:window-event-mask window) '(:structure-notify))
     (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name "Foreign App")
     ;; usare semafori invece o server grab
-     (sleep 0.5)))
+    (sleep 0.5)))
+
+(defun foreign-application-unmanage-xwindow (frame)
+  (when-let ((window (foreign-xwindow frame))
+             (root (sheet-mirror (graft frame)))
+             (pane (find-pane-named frame 'main)))
+    (setf (xlib:window-event-mask window) 0)
+    (multiple-value-bind (x y)
+        (xlib:translate-coordinates window 0 0 root)
+      (xlib:reparent-window window root x y))
+    (port-unregister-foreign-application (port frame) pane window)
+    (setf (foreign-xwindow frame) nil)
+    (setf (foreign-xwindow pane) nil)))
 

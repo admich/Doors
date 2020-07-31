@@ -264,8 +264,7 @@
          (clim-clx::process-selection-notify *doors-port* window target property selection time))
        (maybe-funcall *wait-function*))
       (:selection-clear
-       (with-sheet-from-window (sheet)
-         (clim-clx::process-selection-clear *doors-port* selection))
+       (clim-clx::process-selection-clear *doors-port* selection)
        (maybe-funcall *wait-function*))
       (:selection-request
        (with-sheet-from-window (sheet)
@@ -279,6 +278,12 @@
        (unless (xlib:event-listen (clx-port-display *doors-port*))
          (xlib:display-force-output (clx-port-display *doors-port*)))
        (maybe-funcall *wait-function*)))))
+
+(dotimes (i 10)
+  (let ((wm-sel (alexandria:make-keyword (format nil "WM_S~d" i))))
+    (defmethod release-selection ((port doors-port) (selection (eql wm-sel)) object)
+      (stop-wm port))))
+
 
 ;; copied from clim-clx
 (defun port-client-message (sheet time type data)

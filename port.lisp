@@ -110,7 +110,7 @@
           (progn (xlib:destroy-window wm-sn-manager)
                  (error "Another WM is running~%"))
           (setf (xlib:selection-owner dpy *wm-selection* timestamp) wm-sn-manager))
-s
+
       (when old-wm
         (unless
             (dotimes (i 5)
@@ -143,6 +143,17 @@ s
                        :data (list timestamp
                                    (xlib:find-atom dpy *wm-selection*)
                                    (xlib:window-id wm-sn-manager))))))
+
+(defun stop-wm (port)
+  "Stop xwm"
+  (maphash (lambda (mirror sheet)
+             (declare (ignore mirror))
+             (foreign-application-unmanage-xwindow (pane-frame sheet))
+             (frame-exit (pane-frame sheet)))
+           (slot-value port 'foreign-mirror->sheet))
+  (xlib:destroy-window (wm-selection-manager port))
+  (setf (wm-selection-manager port) nil)
+  (setf (xlib:window-event-mask (clx-port-window port)) (xlib:make-event-mask)))
 
 (defmethod initialize-instance :after ((port doors-port) &rest args)
   (declare (ignore args))
