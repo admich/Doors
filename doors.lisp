@@ -269,6 +269,14 @@
   (let* ((frames (managed-frames)))
     (map nil #'bury-frame frames)))
 
+(define-doors-command-with-grabbed-keystroke (com-bury-doors :name t :keystroke (#\h :super))
+    ()
+  (bury-frame *application-frame*))
+
+(define-doors-command-with-grabbed-keystroke (com-raise-doors :name t :keystroke (#\H :super))
+    ()
+  (raise-frame *application-frame*))
+
 (define-doors-command-with-grabbed-keystroke (com-goto-wm-interactor :keystroke (#\i :super))
     ()
   (setf (frame-current-layout *wm-application*) 'with-interactor)
