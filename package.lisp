@@ -97,7 +97,9 @@
    #:port-lookup-foreign-sheet
    #:make-foreign-application
    #:start-wm
-   #:stop-wm))
+   #:stop-wm
+   #:*grabbed-keystrokes*
+   #:grab/ungrab-keystroke))
 
 (defpackage #:doors
   (:use #:clim-lisp #:clim #:clim-doors)

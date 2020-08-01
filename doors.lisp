@@ -24,8 +24,6 @@
 
 (swank/backend:install-debugger-globally #'clim-debugger:debugger)
 
-(defparameter *grabbed-keystrokes* nil)
-
 (defparameter *config-file* (merge-pathnames "doors/config.lisp" (uiop:xdg-config-home)))
 
 (define-application-frame doors ()
@@ -65,57 +63,6 @@
   (unless (port-lookup-foreign-sheet (port client) (window-manager-map-request-event-window event))
     (make-foreign-application (window-manager-map-request-event-window event) :frame-manager (find-frame-manager :port (port client)))))
 
-;; ;;; The parameter STATE is a bit mask represented as the logical OR
-;; ;;; of individual bits.  Each bit corresponds to a modifier or a
-;; ;;; pointer button that is active immediately before the key was
-;; ;;; pressed or released.  The bits have the following meaning:
-;; ;;;
-;; ;;;   position  value    meaning
-;; ;;;     0         1      shift
-;; ;;;     1         2      lock
-;; ;;;     2         4      control
-;; ;;;     3         8      mod1
-;; ;;;     4        16      mod2
-;; ;;;     5        32      mod3
-;; ;;;     6        64      mod4
-;; ;;;     7       128      mod5
-;; ;;;     8       256      button1
-;; ;;;     9       512      button2
-;; ;;;    10      1024      button3
-;; ;;;    11      2048      button4
-;; ;;;    12      4096      button5
-
-(defun keystroke-to-keycode-and-state (keystroke port)
-  "Return x11 keycode and state from a keystroke"
-  (let* ((mod-values '((:shift . 1) (:control . 4) (:meta . 8) (:super . 64)))
-         (display (clim-clx::clx-port-display port))
-         (key (car keystroke))
-         (modifiers (cdr keystroke))
-         (keysym (if (characterp key)
-                     (first (xlib:character->keysyms key display))
-                     (clim-xcommon:keysym-name-to-keysym key)))
-         (keycode (xlib:keysym->keycodes display keysym))
-         (shift? (cond
-                   ((= keysym (xlib:keycode->keysym display keycode 0))
-                    nil)
-                   ((= keysym (xlib:keycode->keysym display keycode 1))
-                    t)
-                   (t (error "Error in find the keycode of char ~S" char))))
-         state)
-    (when shift? (pushnew :shift modifiers))
-    ;; maybe is better to use logior
-    (setf state (loop for i in modifiers sum (alexandria:assoc-value mod-values i)))
-    (values keycode state)))
-
-(defun grab/ungrab-keystroke (keystroke &key (port (find-port)) (ungrab nil))
-  (let* ((display (clim-clx::clx-port-display port))
-         (root (clim-clx::clx-port-window port)))
-    (multiple-value-bind (code state) (keystroke-to-keycode-and-state keystroke port)
-      (if ungrab
-          (xlib:ungrab-key root code :modifiers state)
-          (xlib:grab-key root code :modifiers state)))
-    (xlib:display-finish-output display)))
-
 (defmethod run-frame-top-level :around ((frame doors)
                                         &key &allow-other-keys)
   (let ((port (port frame)))
@@ -125,11 +72,8 @@
              (:on (start-wm port))
              (:replace (start-wm port t)))
            (load *config-file*)
-           (loop for key in *grabbed-keystrokes* do
-                (grab/ungrab-keystroke key :port port))
            (call-next-method))
-      (loop for key in *grabbed-keystrokes* do
-           (grab/ungrab-keystroke key :port port :ungrab t)))))
+      (stop-wm port))))
 
 (defmethod run-frame-top-level :before ((frame doors) &key &allow-other-keys)
   (queue-event (find-pane-named frame 'info) (make-instance 'info-line-event :sheet frame)))
