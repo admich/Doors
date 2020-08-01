@@ -77,7 +77,8 @@
   (let ((windows (xlib:query-tree (clx-port-window port))))
     (loop for win in windows
        unless (or (xlib:window-equal win (sheet-mirror (frame-top-level-sheet *wm-application*)))
-                  (eq (xlib:window-override-redirect win) :on)) do
+                  (eq (xlib:window-override-redirect win) :on)
+                  (eq (xlib:window-map-state win) :unmapped)) do
          (make-foreign-application win :frame-manager (find-frame-manager :port port)))))
 
 (defun start-wm (port &optional replace)
