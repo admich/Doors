@@ -151,6 +151,7 @@
 (defun make-foreign-application (window &key (frame-manager (find-frame-manager)))
   (let ((frame (make-application-frame 'foreign-application
                                        :foreign-xwindow window
+                                       :state :disowned
                                        :frame-manager frame-manager)))
     (setf (xlib:window-event-mask window) '(:structure-notify))
     (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name "Foreign App")
