@@ -19,7 +19,7 @@
 
 (in-package :climi)
 
-;; set mirror transformation also for top-level-sheet-pane
+;; set mirror transformation also for top-level-sheet-pane when the port is the WM
 (defun %set-mirror-geometry (sheet &key
                                      (MT (make-translation-transformation -5 -5))
                                      (MR (make-rectangle* 0 0 1 1))
@@ -32,17 +32,16 @@
     (let ((port (port sheet))
           (mirror (sheet-direct-mirror sheet)))
       (port-set-mirror-region port mirror MR)
-      ;; TOP-LEVEL-SHEET-PANE is our window (and it is managed by the window
-      ;; manager - decorations and such. We can't pinpoint exact translation. On
-      ;; the other hand UNMANAGED-TOP-LEVEL-SHEET-PANE is essential for menus
-      ;; and has exact position set (thanks to not being managed by WM).
-      ;; (unless (and (typep sheet 'top-level-sheet-pane)
-      ;;              (null (typep sheet 'unmanaged-top-level-sheet-pane)))
-      ;; 	(port-set-mirror-transformation port mirror MT))
-
-      ;; doors is the window manager
-      (port-set-mirror-transformation port mirror MT)
-      )
+      (if (clim-doors::wm-selection-manager (port sheet))
+          ;; doors is the window manager
+          (port-set-mirror-transformation port mirror MT)
+          ;; TOP-LEVEL-SHEET-PANE is our window (and it is managed by the window
+          ;; manager - decorations and such. We can't pinpoint exact translation. On
+          ;; the other hand UNMANAGED-TOP-LEVEL-SHEET-PANE is essential for menus
+          ;; and has exact position set (thanks to not being managed by WM).
+          (unless (and (typep sheet 'top-level-sheet-pane)
+                       (null (typep sheet 'unmanaged-top-level-sheet-pane)))
+            (port-set-mirror-transformation port mirror MT))))
     (when invalidate-transformations
       (with-slots (native-transformation device-transformation) sheet
         (setf native-transformation nil
@@ -131,10 +130,15 @@
         (resize-sheet tls width height))
       (allocate-space tls width height))))
 
-;;; compared to mcclim we don't need to do nothing here
+;;; compared to mcclim when the port is the WM we don't need to do nothing here
 (defmethod handle-event ((sheet top-level-sheet-pane)
                          (event window-configuration-event))
-  '())
+  (unless (clim-doors::wm-selection-manager (port sheet))
+    (let ((x (window-configuration-event-x event))
+        (y (window-configuration-event-y event))
+        (width (window-configuration-event-width event))
+        (height (window-configuration-event-height event)))
+      (resize-sheet sheet width height))))
 
 
 (in-package :clim-xcommon)

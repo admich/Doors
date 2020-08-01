@@ -131,7 +131,10 @@
                        :data (list timestamp
                                    (xlib:find-atom dpy *wm-selection*)
                                    (xlib:window-id wm-sn-manager)))
-      (check-for-existing-window port))))
+      (check-for-existing-window port)
+      (when *wm-application*
+        (let ((graft (graft *wm-application*)))
+          (layout-frame *wm-application* (bounding-rectangle-width graft) (bounding-rectangle-height graft)))))))
 
 (defun stop-wm (port)
   "Stop xwm"
