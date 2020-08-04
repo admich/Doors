@@ -134,13 +134,18 @@
 ;;; compared to mcclim when the port is the WM we don't need to do nothing here
 (defmethod handle-event ((sheet top-level-sheet-pane)
                          (event window-configuration-event))
-  (unless (clim-doors::wm-selection-manager (port sheet))
+  (unless (and (clim-doors::wm-selection-manager (port sheet))
+               (eql (sheet-parent sheet) (graft sheet)))
     (let ((x (window-configuration-event-x event))
-        (y (window-configuration-event-y event))
-        (width (window-configuration-event-width event))
-        (height (window-configuration-event-height event)))
-      (resize-sheet sheet width height))))
-
+          (y (window-configuration-event-y event))
+          (width (window-configuration-event-width event))
+          (height (window-configuration-event-height event)))
+      (let ((*configuration-event-p* sheet))
+      (%set-sheet-region-and-transformation
+       sheet
+       (make-bounding-rectangle 0 0 width height)
+       ;; negative offsets are handled by the native transformation?
+       (make-translation-transformation x y))))))
 
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)
