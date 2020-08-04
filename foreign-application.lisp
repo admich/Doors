@@ -18,8 +18,9 @@
 (in-package :clim-doors)
 
 (defclass foreign-application-pane (mirrored-sheet-mixin ; must be the first                                     
-				     ;extended-input-stream
-				     fundamental-character-input-stream
+                                        ;extended-input-stream
+                                    immediate-sheet-input-mixin
+                                    ;; fundamental-character-input-stream
 				     ;fundamental-input-stream
 				     basic-gadget)
   ())
