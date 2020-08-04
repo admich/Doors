@@ -60,7 +60,7 @@
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-configuration-request-event))
   ()
   (with-slots (window x y width height) event
-    (layout-frame *application-frame* width height)))
+    (layout-frame (pane-frame pane) width height)))
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-delete-event))
   (frame-exit (pane-frame pane)))
