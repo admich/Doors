@@ -53,7 +53,7 @@
 ;;;; wm-ornaments-pane
 
 (defclass wm-ornaments-pane (basic-gadget
-                             clim-stream-pane)
+                             immediate-sheet-input-mixin)
   ((managed-frame :initarg :managed-frame :initform nil :accessor managed-frame)))
 
 (defmethod compose-space ((pane wm-ornaments-pane) &key width height)
@@ -70,10 +70,13 @@
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-button-press-event))
   (let ((button (pointer-event-button event))
-	(t-l-s (frame-top-level-sheet (managed-frame pane))))
+        (t-l-s (frame-top-level-sheet (managed-frame pane)))
+        (graft  (graft pane))
+        (pointer (port-pointer (port pane))))
     (cond
       ((eql button +pointer-left-button+)
-       (setf (stream-pointer-position pane) (values 0 0))
+       (multiple-value-bind (x y) (transform-position (sheet-delta-transformation t-l-s graft) 0 0)
+         (setf (pointer-position pointer) (values x y)))
        (clime:frame-display-pointer-documentation-string *wm-application* "Drag to move")
        (block track
          (tracking-pointer (pane)
@@ -90,7 +93,8 @@
       ((eql button +pointer-right-button+)
        (clime:frame-display-pointer-documentation-string *wm-application* "Drag to resize")
        (multiple-value-bind (w h) (bounding-rectangle-size t-l-s)
-         (setf (stream-pointer-position pane) (values w h)))
+         (multiple-value-bind (x y) (transform-position (sheet-delta-transformation t-l-s graft) w h)
+           (setf (pointer-position pointer) (values x y))))
        (block track
          (tracking-pointer (pane)
            (:pointer-motion (window x y)
