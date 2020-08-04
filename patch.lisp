@@ -40,7 +40,8 @@
           ;; the other hand UNMANAGED-TOP-LEVEL-SHEET-PANE is essential for menus
           ;; and has exact position set (thanks to not being managed by WM).
           (unless (and (typep sheet 'top-level-sheet-pane)
-                       (null (typep sheet 'unmanaged-top-level-sheet-pane)))
+                       (null (typep sheet 'unmanaged-top-level-sheet-pane))
+                       (eql (sheet-parent sheet) (graft sheet)))
             (port-set-mirror-transformation port mirror MT))))
     (when invalidate-transformations
       (with-slots (native-transformation device-transformation) sheet
