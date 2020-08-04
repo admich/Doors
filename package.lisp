@@ -98,6 +98,7 @@
    #:make-foreign-application
    #:start-wm
    #:stop-wm
+   #:wm-selection-manager
    #:*grabbed-keystrokes*
    #:grab/ungrab-keystroke))
 

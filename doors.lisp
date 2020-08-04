@@ -73,7 +73,8 @@
              (:replace (start-wm port t)))
            (load *config-file*)
            (call-next-method))
-      (stop-wm port))))
+      (when (wm-selection-manager port)
+        (stop-wm port)))))
 
 (defmethod run-frame-top-level :before ((frame doors) &key &allow-other-keys)
   (queue-event (find-pane-named frame 'info) (make-instance 'info-line-event :sheet frame)))
