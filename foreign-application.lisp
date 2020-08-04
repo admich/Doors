@@ -62,9 +62,6 @@
   (with-slots (window x y width height) event
     (layout-frame (pane-frame pane) width height)))
 
-(defmethod handle-event ((pane foreign-application-pane) (event window-manager-delete-event))
-  (frame-exit (pane-frame pane)))
-
 (defmethod handle-event ((pane foreign-application-pane) (event window-destroy-event))
   (frame-exit (pane-frame pane)))
 
