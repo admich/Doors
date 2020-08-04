@@ -134,8 +134,8 @@
 ;;; compared to mcclim when the port is the WM we don't need to do nothing here
 (defmethod handle-event ((sheet top-level-sheet-pane)
                          (event window-configuration-event))
-  (unless (and (clim-doors::wm-selection-manager (port sheet))
-               (eql (sheet-parent sheet) (graft sheet)))
+  (when (and (null (clim-doors::wm-selection-manager (port sheet)))
+             (eql (sheet-parent sheet) (graft sheet)))
     (let ((x (window-configuration-event-x event))
           (y (window-configuration-event-y event))
           (width (window-configuration-event-width event))
