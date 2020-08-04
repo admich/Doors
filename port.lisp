@@ -189,6 +189,7 @@
                 (grab/ungrab-keystroke key :port port))
       (when *wm-application*
         (let ((graft (graft *wm-application*)))
+          (move-sheet (frame-top-level-sheet *wm-application*) 0 0)
           (layout-frame *wm-application* (bounding-rectangle-width graft) (bounding-rectangle-height graft)))))))
 
 (defun stop-wm (port)
