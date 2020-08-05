@@ -25,6 +25,9 @@
 (swank/backend:install-debugger-globally #'clim-debugger:debugger)
 
 (defparameter *config-file* (merge-pathnames "doors/config.lisp" (uiop:xdg-config-home)))
+(defparameter *terminal* '("xterm" "xterm"))
+(defparameter *browser* '("firefox" "Navigator"))
+(defparameter *emacs* '("emacs" "emacs"))
 
 (define-application-frame doors ()
   ((start-wm :initarg :start-wm :initform :off :reader doors-start-wm))
@@ -116,11 +119,11 @@
        (setf (active-frame (port *application-frame*)) (car frames))
        (uiop:launch-program ,sh-command))))
 
-(define-run-or-raise com-emacs "emacsclient -c" "emacs" (#\E :super))
+(define-run-or-raise com-emacs (first *emacs*) (second *emacs*) (#\E :super))
 
-(define-run-or-raise com-browser "next" "next" (#\b :super))
+(define-run-or-raise com-browser (first *browser*) (second *browser*) (#\b :super))
 
-(define-run-or-raise com-terminal "urxvtcd +sb -e tmux new -A -s default" "urxvt" (#\c :super))
+(define-run-or-raise com-terminal (first *terminal*) (second *terminal*) (#\c :super))
 
 (define-doors-command-with-grabbed-keystroke (com-listener :name t :keystroke (#\l :super))
     ()
