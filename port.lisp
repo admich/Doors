@@ -138,6 +138,7 @@
   (let ((dpy (clx-port-display port))
         (root (clx-port-window port))
         timestamp)
+    (intern-netwm-atoms dpy)
     (xlib:intern-atom dpy *wm-selection*)
     (let ((old-wm (xlib:selection-owner dpy *wm-selection*))
           (wm-sn-manager (xlib:create-window :parent root

@@ -93,12 +93,10 @@
                            window :parent)))
 
 (defmethod frame-pretty-name ((frame foreign-application))
-  (multiple-value-bind (name class)
-      (handler-case
-          (xlib:get-wm-class (foreign-xwindow frame))
-        (xlib:window-error () (values "NoWin" "NoWin"))
-        (type-error () (values "NoWin" "NoWin")))
-      (or class "NoName")))
+  (let ((window (foreign-xwindow frame)))
+    (or (ignore-errors (net-wm-name window))
+        (ignore-errors (xlib:wm-name window))
+        "NoWin")))
 
 (defmethod foreign-application-frame-top-level ((frame application-frame))
   (setf (active-frame (port frame)) frame)

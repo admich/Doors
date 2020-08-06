@@ -35,6 +35,7 @@
                #:mcclim-clx/truetype)
   :components((:file "package")
               (:file "patch" )
+              (:file "freedesktop-standards")
               (:file "graft" :depends-on ("package"))
               (:file "port" :depends-on ("package" "graft"))
               (:file "input" :depends-on ("port"))

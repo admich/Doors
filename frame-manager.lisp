@@ -62,6 +62,12 @@
                           :height 15
                           :max-height 15))
 
+(defmethod handle-repaint ((pane wm-ornaments-pane) region)
+  (let* ((region (sheet-region pane))
+         (title (frame-pretty-name (pane-frame pane))))
+    (with-bounding-rectangle* (x1 y1 x2 y2) region
+      (draw-text* pane title 5 y2 :align-y :bottom))))
+
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-enter-event))
   (clime:frame-display-pointer-documentation-string *wm-application* "L: Move  R: Resize"))
 
