@@ -100,7 +100,8 @@
    #:stop-wm
    #:wm-selection-manager
    #:*grabbed-keystrokes*
-   #:grab/ungrab-keystroke))
+   #:grab/ungrab-keystroke
+   #:frame-short-name))
 
 (defpackage #:doors
   (:use #:clim-lisp #:clim #:clim-doors)

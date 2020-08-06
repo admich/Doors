@@ -114,11 +114,15 @@
                                     (clime:frame-display-pointer-documentation-string *wm-application* "")
                                     (return-from track))))))))
 
+(defgeneric frame-short-name (frame)
+  (:method ((frame standard-application-frame))
+    (frame-pretty-name frame)))
+
 (define-presentation-type application-frame ())
 
 (define-presentation-method present (object (type application-frame) stream view &key)
   (declare (ignore view))
-  (format stream " ~a " (frame-pretty-name object)))
+  (format stream " ~a " (frame-short-name object)))
 
 (defmethod disown-frame ((fm doors-frame-manager) (frame application-frame))
   (alexandria:when-let* ((event-queue (climi::frame-event-queue frame))

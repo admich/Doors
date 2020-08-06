@@ -98,6 +98,12 @@
         (ignore-errors (xlib:wm-name window))
         "NoWin")))
 
+(defmethod frame-short-name ((frame foreign-application))
+  (let ((window (foreign-xwindow frame)))
+    (or (ignore-errors (net-wm-icon-name window))
+        (ignore-errors (xlib:wm-icon-name window))
+        (frame-pretty-name frame))))
+
 (defmethod foreign-application-frame-top-level ((frame application-frame))
   (setf (active-frame (port frame)) frame)
   (clim-extensions:simple-event-loop))

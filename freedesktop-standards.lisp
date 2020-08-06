@@ -45,7 +45,7 @@
     ;;; Application Window Properties
     :_NET_WM_NAME
     ;; : _NET_WM_VISIBLE_NAME
-    ;; : _NET_WM_ICON_NAME
+    :_NET_WM_ICON_NAME
     ;; : _NET_WM_VISIBLE_ICON_NAME
     ;; : _NET_WM_DESKTOP
     ;; : _NET_WM_WINDOW_TYPE
@@ -74,10 +74,17 @@
     ;;; Compositing Managers
     ;; :_NET_WM_CM_Sn Manager Selection
     ))
+
 (defun intern-netwm-atoms (dpy)
   (mapcar #'(lambda (atom) (xlib:intern-atom dpy atom)) +ewmh-atoms+))
 
-(defun net-wm-name (window)
+(defun get-utf8-property (window atom)
   (babel:octets-to-string
-   (xlib:get-property window :_NET_WM_NAME :result-type '(vector (unsigned-byte 8)))
+   (xlib:get-property window atom :result-type '(vector (unsigned-byte 8)))
    :encoding :utf-8))
+
+(defun net-wm-name (window)
+  (get-utf8-property window :_NET_WM_NAME))
+
+(defun net-wm-icon-name (window)
+  (get-utf8-property window :_NET_WM_ICON_NAME))
