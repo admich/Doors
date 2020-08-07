@@ -41,6 +41,8 @@
         (xlib:send-event xwindow :configure-notify nil
         	       :event-window xwindow
         	       :window xwindow
+                   :override-redirect-p nil
+                   :event-mask (xlib:make-event-mask :structure-notify)
                    :x x :y y
         	       :width w
         	       :height h
@@ -55,9 +57,9 @@
       (configure-foreign-application foreign-pane))))
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-configuration-request-event))
-  ()
   (with-slots (window x y width height) event
-    (layout-frame (pane-frame pane) width height)))
+    (when (and width height)
+      (layout-frame (pane-frame pane) width height))))
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-destroy-event))
   (frame-exit (pane-frame pane)))
