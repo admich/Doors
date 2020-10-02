@@ -41,7 +41,8 @@
 
 (defmethod distribute-event ((port doors-port) (event keyboard-event))
   (let  ((sheet (event-sheet event)))
-    (if (member sheet (list (graft sheet) (frame-query-io *wm-application*)))
+    (if (or (null (port-keyboard-input-focus port))
+            (member sheet (list (graft sheet) (frame-query-io *wm-application*))))
 	(dispatch-event (frame-query-io *wm-application*) event)
 	(dispatch-event (port-keyboard-input-focus port) event))))
 
