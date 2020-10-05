@@ -30,7 +30,8 @@
 (defparameter *emacs* '("emacs" "emacs"))
 
 (define-application-frame doors ()
-  ((start-wm :initarg :start-wm :initform :off :reader doors-start-wm))
+  ((start-wm :initarg :start-wm :initform :off :reader doors-start-wm)
+   (config-file :initarg :config-file :initform *config-file* :reader config-file))
   (:panes
    (desktop (make-pane :bboard-pane :background +gray+))
    (info :application
@@ -74,7 +75,8 @@
            (case (doors-start-wm frame)
              (:on (start-wm port))
              (:replace (start-wm port t)))
-           (load *config-file*)
+           (alexandria:when-let ((config-file (config-file frame)))
+               (load config-file))
            (call-next-method))
       (when (wm-selection-manager port)
         (stop-wm port)))))
@@ -275,12 +277,13 @@
          (state (cl-ppcre:scan-to-strings "\\[([0-9]*%)\\]" out)))
     (format (frame-query-io *application-frame*) "Audio Volume: ~a" state)))
 
-(defun doors (&key new-process (port (find-port :server-path '(:doors))) (start-wm :on))
+(defun doors (&key new-process (port (find-port :server-path '(:doors))) (start-wm :on) (config-file *config-file*))
   ;; maybe is necessary to control if therreis another instance
   (let* ((fm (find-frame-manager :port port :fm-type :onroot))
         (frame (make-application-frame 'doors
                                        :frame-manager fm
                                        :start-wm start-wm
+                                       :config-file config-file
                                        :width (graft-width (find-graft :port port))
                                        :height (graft-height (find-graft :port port)))))
     (setf *wm-application* frame)
