@@ -135,7 +135,7 @@
                         :graft-x root-x
                         :graft-y root-y
                         :sheet (or (and (graftp sheet) (frame-query-io *wm-application*))
-                                   (frame-properties (pane-frame sheet) 'focus) sheet)
+                                   sheet)
                         :modifier-state modifier-state :timestamp time))))
       ((:button-press :button-release)
        ;; :button-press on a foreign-application change the focus on
