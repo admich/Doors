@@ -41,6 +41,10 @@
     (sleep 1)
     (x-server-timestamp port)))
 
+(defmethod (setf port-keyboard-input-focus) :after
+    (sheet (port doors-port))
+  (xlib:set-input-focus (clx-port-display port) (sheet-mirror sheet) :parent))
+
 (defmethod (setf active-frame) :after (frame (port doors-port))
   (when (member (frame-state frame) '(:disabled :shrunk))
     (enable-frame frame))
