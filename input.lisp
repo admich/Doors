@@ -139,12 +139,8 @@
        ;; that application and the click is replay on the foreign
        ;; application.
        (with-sheet-from-window (sheet)
-         ;; (log:error "N" sheet (pane-frame sheet))
-         ;; (unless (or (eq *wm-application* (pane-frame sheet))
-         ;;           ;; (and (eq (active-frame *doors-port*) (pane-frame sheet))
-         ;;           ;;      (not (eq (pane-frame sheet) (pane-frame (port-keyboard-input-focus *doors-port*)))))
-         ;;           )
-         ;; (setf (active-frame *doors-port*) (pane-frame sheet)))
+         (unless (eq *wm-application* (pane-frame sheet))
+         (setf (active-frame *doors-port*) (pane-frame sheet)))
        (when (typep sheet 'foreign-application-pane)
          (xlib:allow-events display :replay-pointer time)
          (return-from event-handler (maybe-funcall *wait-function*)))
