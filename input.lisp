@@ -39,12 +39,10 @@
       (when width (setf (xlib:drawable-width window) width))
       (when height (setf (xlib:drawable-height window) height)))))
 
-(defmethod distribute-event ((port doors-port) (event keyboard-event))
-  (let  ((sheet (event-sheet event)))
-    (if (or (null (port-keyboard-input-focus port))
-            (member sheet (list (graft sheet) (frame-query-io *wm-application*))))
-	(dispatch-event (frame-query-io *wm-application*) event)
-	(dispatch-event (port-keyboard-input-focus port) event))))
+(defmethod distribute-event :around ((port doors-port) (event keyboard-event))
+  (if (eq (graft port) (event-sheet event))
+      (climi::dispatch-event-copy (frame-query-io *wm-application*) event)
+      (call-next-method)))
 
 (defvar *doors-port*)
 (defvar *wait-function*)
@@ -134,18 +132,19 @@
                         :x x :y y
                         :graft-x root-x
                         :graft-y root-y
-                        :sheet (or (and (graftp sheet) (frame-query-io *wm-application*))
-                                   sheet)
+                        :sheet sheet
                         :modifier-state modifier-state :timestamp time))))
       ((:button-press :button-release)
        ;; :button-press on a foreign-application change the focus on
        ;; that application and the click is replay on the foreign
        ;; application.
        (with-sheet-from-window (sheet)
-         (unless (or (eq *wm-application* (pane-frame sheet))
-                   (and (eq (active-frame *doors-port*) (pane-frame sheet))
-                        (not (eq (pane-frame sheet) (pane-frame (port-keyboard-input-focus *doors-port*))))))
-         (setf (active-frame *doors-port*) (pane-frame sheet)))
+         ;; (log:error "N" sheet (pane-frame sheet))
+         ;; (unless (or (eq *wm-application* (pane-frame sheet))
+         ;;           ;; (and (eq (active-frame *doors-port*) (pane-frame sheet))
+         ;;           ;;      (not (eq (pane-frame sheet) (pane-frame (port-keyboard-input-focus *doors-port*)))))
+         ;;           )
+         ;; (setf (active-frame *doors-port*) (pane-frame sheet)))
        (when (typep sheet 'foreign-application-pane)
          (xlib:allow-events display :replay-pointer time)
          (return-from event-handler (maybe-funcall *wait-function*)))

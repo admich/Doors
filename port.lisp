@@ -26,7 +26,6 @@
 
 (defclass doors-port (mcclim-truetype::clx-ttf-port)
   ((foreign-mirror->sheet :initform (make-hash-table :test #'equalp))
-   (focus :initform nil :accessor %port-keyboard-input-focus)
    (active-frame :initform nil :accessor active-frame)
    (wm-selection-manager :accessor wm-selection-manager
                          :initform nil)
@@ -243,17 +242,6 @@
                                graft)
     (push graft (climi::port-grafts port))
     graft))
-
-(defmethod port-keyboard-input-focus ((port doors-port))
-  (%port-keyboard-input-focus port))
-
-(defmethod (setf port-keyboard-input-focus) (focus (port doors-port))
-  (let ((old-focus (port-keyboard-input-focus port))
-        (mirror (sheet-mirror focus)))
-    (setf  (%port-keyboard-input-focus port) focus)
-    (when (xlib:window-p mirror)
-      (xlib:set-input-focus  (clim-clx::clx-port-display port) mirror :parent))
-    old-focus))
 
 (defmethod port-set-mirror-transformation :after ((port doors-port) mirror mirror-transformation)
   (xlib:display-force-output (clim-clx::clx-port-display port)))
