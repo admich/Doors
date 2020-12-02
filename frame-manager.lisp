@@ -188,6 +188,7 @@
     (t (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
                               :name (frame-name frame)
                               :pretty-name (frame-pretty-name frame)
+                              :icon (clime:frame-icon frame)
                               ;; sheet is enabled from enable-frame
                               :enabled-p nil)))
         (sheet-adopt-child tls (frame-panes frame))
@@ -203,6 +204,7 @@
     (t (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
                               :name (frame-name frame)
                               :pretty-name (frame-pretty-name frame)
+                              :icon (clime:frame-icon frame)
                               ;; sheet is enabled from enable-frame
                               :enabled-p nil))
             (frame-panes (frame-panes frame))
