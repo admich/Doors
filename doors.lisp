@@ -32,6 +32,7 @@
 (define-application-frame doors ()
   ((start-wm :initarg :start-wm :initform :off :reader doors-start-wm)
    (config-file :initarg :config-file :initform *config-file* :reader config-file))
+  (:menu-bar nil)
   (:panes
    (desktop (make-pane :bboard-pane :background +gray+))
    (info :application
