@@ -250,20 +250,3 @@
 (defmethod port-set-mirror-transformation :after ((port doors-port) mirror mirror-transformation)
   (xlib:display-force-output (clim-clx::clx-port-display port)))
 
-;;;; Mirrors
-(defmethod bury-mirror ((port doors-port) (sheet basic-sheet))
-  (let ((mirror (clim-clx::sheet-xmirror sheet)))
-    (when (and mirror
-	       (typep mirror 'xlib:window))
-      ;; (xlib:circulate-window-down mirror)
-      (setf (xlib:window-priority mirror) :below)
-      (xlib:display-force-output (clim-clx::clx-port-display port)))))
-
-(defmethod raise-mirror ((port doors-port) (sheet basic-sheet))
-  (let ((mirror (clim-clx::sheet-xmirror sheet)))
-    (when (and mirror
-	       (typep mirror 'xlib:window))
-      ;; (xlib:circulate-window-down mirror)
-      (setf (xlib:window-priority mirror) :above)
-      (xlib:display-force-output (clim-clx::clx-port-display port)))))
-
