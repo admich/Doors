@@ -289,7 +289,7 @@
        (case message
          (:wm_take_focus
           ;; hmm, this message seems to be sent twice.
-          (when-let ((mirror (sheet-xmirror sheet)))
+          (when-let ((mirror (sheet-mirror sheet)))
             (xlib:set-input-focus (clx-port-display *doors-port*)
                                   mirror :parent (elt data 1)))
           (make-instance 'window-manager-focus-event :sheet sheet :timestamp time))
