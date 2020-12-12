@@ -114,6 +114,22 @@
        (layout-frame frame)
        (signal 'frame-layout-changed :frame frame))))
 
+;;; mcclim version
+;; (defmethod (setf frame-current-layout) :around (name (frame application-frame))
+;;   (unless (eql name (frame-current-layout frame))
+;;     (call-next-method)
+;;     (when-let ((fm (frame-manager frame)))
+;;       (if-let ((tls (and (frame-resize-frame frame)
+;;                          (frame-top-level-sheet frame))))
+;;         (multiple-value-bind (width height)
+;;             (bounding-rectangle-size tls)
+;;           (generate-panes fm frame)
+;;           (layout-frame frame width height))
+;;         (progn
+;;           (generate-panes fm frame)
+;;           (layout-frame frame)))
+;;       (signal 'frame-layout-changed :frame frame))))
+
 ;;; compared to standard mccclim method here the layout protocol is
 ;;; invoked on top-level-sheet and not on frame-panes.
 (defmethod layout-frame ((frame application-frame) &optional width height)
@@ -147,6 +163,7 @@
        ;; negative offsets are handled by the native transformation?
        (make-translation-transformation x y))))))
 
+;;; some keysym
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)
 (define-keysym :XF86-Audio-Mute #x1008FF12)
