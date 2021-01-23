@@ -83,8 +83,8 @@
   (macrolet ((with-sheet-from-window
                  ((sheet) &body body)
 		     `(when-let ((,sheet (and window
-                                (or (port-lookup-sheet *doors-port* window)
-                                    (port-lookup-foreign-sheet *doors-port* window)))))
+                                      (or (getf (xlib:window-plist window) 'sheet)
+                                          (port-lookup-foreign-sheet *doors-port* window)))))
                 ,@body)))
     (case event-key
       ((:focus-out)
@@ -101,9 +101,9 @@
        (return-from event-handler (maybe-funcall *wait-function*)))
       ((:configure-request)
        ;;; maybe I can use with-sheet-from-window here
-       (let ((sheet (and window
-                      (or (port-lookup-sheet *doors-port* window)
-                          (port-lookup-foreign-sheet *doors-port* window)))))
+       (let ((sheet (and window 
+                         (or (getf (xlib:window-plist window) 'sheet)
+                             (port-lookup-foreign-sheet *doors-port* window)))))
          (return-from event-handler
            (make-instance 'window-manager-configuration-request-event
                           :sheet (or sheet *wm-application*)

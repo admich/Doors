@@ -53,11 +53,6 @@
       (when (frame-standard-input frame)
         (stream-set-input-focus (frame-standard-input frame)))))
 
-(defmethod port-lookup-sheet :around ((port doors-port) mirror)
-  (if (xlib:window-equal mirror (sheet-mirror (graft port)))
-      (graft port)
-      (call-next-method)))
-
 (defgeneric port-lookup-foreign-sheet (port mirror))
 (defgeneric port-register-foreign-application (port sheet mirror))
 (defgeneric port-unregister-foreign-application (port sheet mirror))
@@ -141,7 +136,8 @@
   (let ((dpy (clx-port-display port))
         (root (clx-port-window port))
         timestamp)
-    (intern-netwm-atoms dpy)
+    (intern-atoms dpy +icccm-atoms+)
+    (intern-atoms dpy +ewmh-atoms+)
     (xlib:intern-atom dpy *wm-selection*)
     (let ((old-wm (xlib:selection-owner dpy *wm-selection*))
           (wm-sn-manager (xlib:create-window :parent root
