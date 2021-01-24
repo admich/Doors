@@ -61,6 +61,7 @@
 (defmethod dispatch-event ((client doors) event)
   (queue-event client event))
 
+
 (defmethod handle-event ((client doors) (event window-manager-configuration-request-event))
   (grant-configure-request event))
 

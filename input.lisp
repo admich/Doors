@@ -84,7 +84,8 @@
                  ((sheet) &body body)
 		     `(when-let ((,sheet (and window
                                       (or (getf (xlib:window-plist window) 'sheet)
-                                          (port-lookup-foreign-sheet *doors-port* window)))))
+                                          (port-lookup-foreign-sheet *doors-port* window)
+                                          (graft *doors-port*)))))
                 ,@body)))
     (case event-key
       ((:focus-out)
