@@ -38,6 +38,7 @@
               (:file "freedesktop-standards")
               (:file "graft" :depends-on ("package"))
               (:file "port" :depends-on ("package" "graft"))
+              (:file "emergency")
               (:file "input" :depends-on ("port"))
               (:file "frame-manager" :depends-on ( "port" ))
               (:file "foreign-application" :depends-on ( "frame-manager"))))

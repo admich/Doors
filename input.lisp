@@ -44,6 +44,9 @@
       (climi::dispatch-event-copy (frame-query-io *wm-application*) event)
       (call-next-method)))
 
+(defmethod dispatch-event ((client doors-graft) event)
+  (queue-event *wm-application* event))
+
 (defvar *doors-port*)
 (defvar *wait-function*)
 
@@ -125,16 +128,18 @@
          (multiple-value-bind (keyname modifier-state keysym-name)
            (clim-clx::x-event-to-key-name-and-modifiers *doors-port*
                                                         event-key code state)
-         (make-instance (if (eq event-key :key-press)
-                            'key-press-event
-                            'key-release-event)
-                        :key-name keysym-name
-                        :key-character (and (characterp keyname) keyname)
-                        :x x :y y
-                        :graft-x root-x
-                        :graft-y root-y
-                        :sheet sheet
-                        :modifier-state modifier-state :timestamp time))))
+           (if (and (eq #\e keyname) (= modifier-state 1536))
+               (emergency-start display)
+               (make-instance (if (eq event-key :key-press)
+                                  'key-press-event
+                                  'key-release-event)
+                              :key-name keysym-name
+                              :key-character (and (characterp keyname) keyname)
+                              :x x :y y
+                              :graft-x root-x
+                              :graft-y root-y
+                              :sheet sheet
+                              :modifier-state modifier-state :timestamp time)))))
       ((:button-press :button-release)
        ;; :button-press on a foreign-application change the focus on
        ;; that application and the click is replay on the foreign
