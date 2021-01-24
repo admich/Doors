@@ -19,35 +19,6 @@
 
 (in-package :climi)
 
-;; set mirror transformation also for top-level-sheet-pane when the port is the WM
-(defun %set-mirror-geometry (sheet &key
-                                     (MT (make-translation-transformation -5 -5))
-                                     (MR (make-rectangle* 0 0 1 1))
-                                     (invalidate-transformations nil))
-  
-  (setf (%sheet-mirror-region sheet) MR)
-  (setf (%sheet-mirror-transformation sheet) MT)
-  (when (and (sheet-direct-mirror sheet)
-             (not (eql *configuration-event-p* sheet)))
-    (let ((port (port sheet))
-          (mirror (sheet-direct-mirror sheet)))
-      (port-set-mirror-region port mirror MR)
-      (if (clim-doors::wm-selection-manager (port sheet))
-          ;; doors is the window manager
-          (port-set-mirror-transformation port mirror MT)
-          ;; TOP-LEVEL-SHEET-PANE is our window (and it is managed by the window
-          ;; manager - decorations and such. We can't pinpoint exact translation. On
-          ;; the other hand UNMANAGED-TOP-LEVEL-SHEET-PANE is essential for menus
-          ;; and has exact position set (thanks to not being managed by WM).
-          (unless (and (typep sheet 'top-level-sheet-pane)
-                       (null (typep sheet 'unmanaged-top-level-sheet-pane))
-                       (eql (sheet-parent sheet) (graft sheet)))
-            (port-set-mirror-transformation port mirror MT))))
-    (when invalidate-transformations
-      (with-slots (native-transformation device-transformation) sheet
-        (setf native-transformation nil
-              device-transformation nil)))))
-
 (defun find-frame-manager (&rest options &key port &allow-other-keys)
   (declare (special *frame-manager*))
   (climi::with-keywords-removed (options (:port))
