@@ -19,6 +19,13 @@
 
 (in-package :clim-doors)
 
+(defconstant +normal-state+ 1)
+(defconstant +iconic-state+ 3)
+(defconstant +withdrawn-state+ 0)
+
+(defconstant +icccm-atoms+
+  '(:WM_STATE))
+
 (defconstant  +ewmh-atoms+
   '(;;; Root Window Properties (and Related Messages)
     ;; :_NET_SUPPORTED
@@ -75,8 +82,15 @@
     ;; :_NET_WM_CM_Sn Manager Selection
     ))
 
-(defun intern-netwm-atoms (dpy)
-  (mapcar #'(lambda (atom) (xlib:intern-atom dpy atom)) +ewmh-atoms+))
+(defun intern-atoms (dpy atoms)
+  (mapcar #'(lambda (atom) (xlib:intern-atom dpy atom)) atoms))
+
+(defun set-xwindow-state (xwindow state)
+  (xlib:change-property xwindow
+                        :WM_STATE
+                        (list state)
+                        :WM_STATE
+                        32))
 
 (defun get-utf8-property (window atom)
   (babel:octets-to-string
