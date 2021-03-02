@@ -41,9 +41,9 @@
     (sleep 1)
     (x-server-timestamp port)))
 
-(defmethod (setf port-keyboard-input-focus) :after
-    (sheet (port doors-port))
-  (xlib:set-input-focus (clx-port-display port) (sheet-mirror sheet) :parent))
+;; (defmethod (setf port-keyboard-input-focus) :after
+;;     (sheet (port doors-port))
+;;   (xlib:set-input-focus (clx-port-display port) (sheet-mirror sheet) :parent))
 
 (defmethod (setf active-frame) :after (frame (port doors-port))
   (when (member (frame-state frame) '(:disabled :shrunk))
@@ -53,21 +53,21 @@
       (when (frame-standard-input frame)
         (stream-set-input-focus (frame-standard-input frame)))))
 
-(defgeneric port-lookup-foreign-sheet (port mirror))
-(defgeneric port-register-foreign-application (port sheet mirror))
-(defgeneric port-unregister-foreign-application (port sheet mirror))
+(defgeneric port-lookup-foreign-sheet (port window))
+(defgeneric port-register-foreign-application (port sheet window))
+(defgeneric port-unregister-foreign-application (port sheet window))
 
-(defmethod port-lookup-foreign-sheet ((port doors-port) mirror)
-  (gethash (xlib:window-id mirror) (slot-value port 'foreign-mirror->sheet)))
+(defmethod port-lookup-foreign-sheet ((port doors-port) window)
+  (gethash (xlib:window-id window) (slot-value port 'foreign-mirror->sheet)))
 
 (defmethod port-register-foreign-application
-    ((port doors-port) sheet mirror)
-  (setf (gethash (xlib:window-id mirror) (slot-value port 'foreign-mirror->sheet)) sheet)
+    ((port doors-port) sheet window)
+  (setf (gethash (xlib:window-id window) (slot-value port 'foreign-mirror->sheet)) sheet)
   nil)
 
 (defmethod port-unregister-foreign-application
-    ((port doors-port) sheet mirror)
-  (remhash (xlib:window-id mirror) (slot-value port 'foreign-mirror->sheet))
+    ((port doors-port) sheet window)
+  (remhash (xlib:window-id window) (slot-value port 'foreign-mirror->sheet))
   nil)
 
 (setf (get :doors :port-type) 'doors-port)
@@ -76,7 +76,7 @@
 (defun check-for-existing-window (port)
   (let ((windows (xlib:query-tree (clx-port-window port))))
     (loop for win in windows
-       unless (or (xlib:window-equal win (sheet-mirror (frame-top-level-sheet *wm-application*)))
+       unless (or (xlib:window-equal win (clim-clx::window (sheet-mirror (frame-top-level-sheet *wm-application*))))
                   (eq (xlib:window-override-redirect win) :on)
                   (eq (xlib:window-map-state win) :unmapped)) do
          (make-foreign-application win :frame-manager (find-frame-manager :port port)))))
@@ -234,7 +234,8 @@
 
 (defmethod make-graft ((port doors-port) &key (orientation :default) (units :device))
   (let ((graft (make-instance 'doors-graft
-		 :port port :mirror (clim-clx::clx-port-window port)
+                              :port port
+                              :mirror (make-instance 'clim-clx::clx-mirror :window (clim-clx::clx-port-window port))
 		 :orientation orientation :units units))
         (width (xlib:screen-width (clim-clx::clx-port-screen port)))
         (height (xlib:screen-height (clim-clx::clx-port-screen port))))

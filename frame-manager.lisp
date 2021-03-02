@@ -235,13 +235,13 @@
 
 (defmethod enable-frame :around ((frame application-frame))
   (call-next-method)
-  (set-xwindow-state (sheet-mirror (frame-top-level-sheet frame)) +normal-state+))
+  (set-xwindow-state (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) +normal-state+))
 
 (defmethod disable-frame :around ((frame application-frame))
-  (xlib:delete-property (sheet-mirror (frame-top-level-sheet frame)) :WM_STATE)
+  (xlib:delete-property (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) :WM_STATE)
   (call-next-method))
 
 (defmethod shrink-frame :around ((frame application-frame))
-  (set-xwindow-state (sheet-mirror (frame-top-level-sheet frame)) +iconic-state+)
+  (set-xwindow-state (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) +iconic-state+)
   (call-next-method))
 

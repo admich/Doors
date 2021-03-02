@@ -132,7 +132,7 @@
 
 (defun map-tray (pane)
   (alexandria:when-let ((window (tray-win pane)))
-    (let* ((parent-window (sheet-mirror pane)))
+    (let* ((parent-window (clim-clx::window (sheet-mirror pane))))
       (xlib:reparent-window window parent-window 0 0)
       (xlib:display-force-output (clim-clx::clx-port-display (port (pane-frame pane))))
       (xlib:map-window window)

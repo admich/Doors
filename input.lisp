@@ -94,7 +94,7 @@
       ((:focus-out)
        (when  (eq :none (xlib:input-focus display))
          (xlib:set-input-focus (clim-clx::clx-port-display (port *wm-application*))
-                               (sheet-mirror (graft *wm-application*))
+                               (clim-clx::window (sheet-mirror (graft *wm-application*)))
                                :parent)
          (ensure-focus-frame)
          (return-from event-handler (maybe-funcall *wait-function*))))
@@ -297,7 +297,7 @@
           ;; hmm, this message seems to be sent twice.
           (when-let ((mirror (sheet-mirror sheet)))
             (xlib:set-input-focus (clx-port-display *doors-port*)
-                                  mirror :parent (elt data 1)))
+                                  (window mirror) :parent (elt data 1)))
           (make-instance 'window-manager-focus-event :sheet sheet :timestamp time))
          (:wm_delete_window
           (make-instance 'window-manager-delete-event :sheet sheet :timestamp time))

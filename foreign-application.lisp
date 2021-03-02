@@ -26,7 +26,7 @@
   (foreign-xwindow (pane-frame pane)))
 
 (defun configure-foreign-application (foreign-pane)
-  (let* ((xparent (sheet-mirror foreign-pane))
+  (let* ((xparent (clim-clx::window (sheet-mirror foreign-pane)))
          (xwindow (foreign-xwindow foreign-pane))
          (w (xlib:drawable-width xparent))
          (h (xlib:drawable-height xparent)))
@@ -72,7 +72,7 @@
 
 (defmethod compose-space ((pane foreign-application-pane) &key width height)
   (declare (ignore width height))
-  (let* ((parent (sheet-mirror pane))
+  (let* ((parent (clim-clx::window (sheet-mirror pane)))
 	 (xwin (foreign-xwindow pane))
 	 (width (and xwin (xlib:drawable-width xwin)))
 	 (height (and xwin (xlib:drawable-height xwin)))
@@ -130,12 +130,12 @@
 
 (defmethod disown-frame :before ((frame-manager doors-frame-manager) (frame foreign-application))
   (when-let ((window (foreign-xwindow frame)))
-    (xlib:reparent-window window (sheet-mirror (graft frame)) 0 0)))
+    (xlib:reparent-window window (clim-clx::window (sheet-mirror (graft frame))) 0 0)))
 
 (defmethod adopt-frame :after ((frame-manager doors-frame-manager) (frame foreign-application))
   (let* ((window (foreign-xwindow frame))
          (pane (find-pane-named frame 'main))
-         (parent-window (sheet-mirror pane)))
+         (parent-window (clim-clx::window (sheet-mirror pane))))
     (when window
       (port-register-foreign-application (port frame-manager) pane window))
     (xlib:grab-button parent-window 1 '(:button-press)
@@ -161,7 +161,7 @@
 
 (defun foreign-application-unmanage-xwindow (frame)
   (when-let ((window (foreign-xwindow frame))
-             (root (sheet-mirror (graft frame)))
+             (root (clim-clx::window (sheet-mirror (graft frame))))
              (pane (find-pane-named frame 'main)))
     (setf (xlib:window-event-mask window) 0)
     (multiple-value-bind (x y)
@@ -172,7 +172,7 @@
 
 (defmethod enable-frame :around ((frame foreign-application))
   (call-next-method)
-  (xlib:delete-property (sheet-mirror (frame-top-level-sheet frame)) :WM_STATE)
+  (xlib:delete-property (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) :WM_STATE)
   (set-xwindow-state (foreign-xwindow frame) +normal-state+))
 
 (defmethod disable-frame :around ((frame foreign-application))
@@ -180,6 +180,6 @@
   (call-next-method))
 
 (defmethod shrink-frame :around ((frame foreign-application))
-  (xlib:delete-property (sheet-mirror (frame-top-level-sheet frame)) :WM_STATE)
+  (xlib:delete-property (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) :WM_STATE)
   (set-xwindow-state (foreign-xwindow frame) +iconic-state+)
   (call-next-method))
