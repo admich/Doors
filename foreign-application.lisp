@@ -72,15 +72,11 @@
 
 (defmethod compose-space ((pane foreign-application-pane) &key width height)
   (declare (ignore width height))
-  (let* ((parent (clim-clx::window (sheet-mirror pane)))
-	 (xwin (foreign-xwindow pane))
-	 (width (and xwin (xlib:drawable-width xwin)))
-	 (height (and xwin (xlib:drawable-height xwin)))
-	 (w (and parent (xlib:drawable-width parent)))
-	 (h (and parent (xlib:drawable-height parent))))
+  (let* ((xwin (foreign-xwindow pane))
+    	 (width (and xwin (xlib:drawable-width xwin)))
+    	 (height (and xwin (xlib:drawable-height xwin))))
     (make-space-requirement :width  (or  width 800)
                             :height (or  height 600))))
-
 
 (define-application-frame foreign-application ()
   ((foreign-xwindow :initarg :foreign-xwindow :initform nil :accessor foreign-xwindow))
