@@ -206,11 +206,30 @@
     ()
   (uiop:run-program "dmenu_run -i -b -p \"run command:\""))
 
+(defun programs-in-path ()
+  "Return a list of all programs in PATH env variable"
+  (loop for dir  in (ppcre:split ":" (uiop:getenv "PATH"))
+        appending (map 'list #'pathname-name (uiop:directory-files (uiop:ensure-directory-pathname dir)))))
+
+(define-presentation-type program-name () :inherit-from 'string)
+
+(define-presentation-method presentation-typep (object (type program-name))
+  (and nil (stringp object)
+        (find object  (programs-in-path)
+              :test #'string=)))
+
+;; define-presentation-method presentation-subtypep ?
+
+(define-presentation-method accept ((type string) stream (view textual-view)
+                                    &key)
+  (let* ((suggestions (programs-in-path))
+         (obj (completing-from-suggestions (stream)
+                (dolist (x suggestions)
+                 (suggest x x)))))
+      obj))
+
 (define-doors-command (com-run :name t)
-    ((command `(member-sequence
-                ,(loop for dir  in (ppcre:split ":" (uiop:getenv "PATH"))
-                    appending (map 'list #'pathname-name (uiop:directory-files (uiop:ensure-directory-pathname dir)))))
-              :prompt "Command")
+    ((command 'program-name :prompt "Command")
      (args '(or null (sequence string)) :prompt "Arguments" :default '()))
   (format (frame-query-io *application-frame*) "~s" (cons command args))
   (uiop:launch-program (cons command args)))
