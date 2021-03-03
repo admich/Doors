@@ -59,7 +59,8 @@
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-configuration-request-event))
   (with-slots (window x y width height) event
     (when (and width height)
-      (layout-frame (pane-frame pane) width height))))
+      (resize-sheet pane width height)
+      (layout-frame (pane-frame pane)))))
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-destroy-event))
   (frame-exit (pane-frame pane)))
