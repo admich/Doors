@@ -18,7 +18,6 @@
 
 (defsystem #:mcclim-doors
   :depends-on (#:mcclim-clx
-               #:mcclim-clx/truetype
                #:log4cl)
   :components((:file "package")
               (:file "patch" )

@@ -24,7 +24,7 @@
 (defclass doors-pointer (clim-clx::clx-pointer)
   ())
 
-(defclass doors-port (mcclim-truetype::clx-ttf-port)
+(defclass doors-port (clim-clx::clx-ttf-port)
   ((foreign-mirror->sheet :initform (make-hash-table :test #'equalp))
    (active-frame :initform nil :accessor active-frame)
    (wm-selection-manager :accessor wm-selection-manager
