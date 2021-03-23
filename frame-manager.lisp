@@ -51,6 +51,12 @@
              t))))
 
 ;;;; wm-ornaments-pane
+(defparameter *ornaments-height* 15)
+
+(defgeneric ornaments-height (frame-manager)
+  (:documentation "The height of the ornaments drawn by the frame manager FRAME-MANAGER")
+  (:method ((fm doors-frame-manager)) 0)
+  (:method ((fm doors-stack-frame-manager)) 15))
 
 (defclass wm-ornaments-pane (basic-gadget
                              immediate-sheet-input-mixin)
@@ -87,13 +93,17 @@
        (block track
          (tracking-pointer (pane :multiple-window t)
            (:pointer-motion (window x y)
-           		            (multiple-value-bind (x y)
-           			            (transform-position (sheet-delta-transformation pane (sheet-parent t-l-s)) x y)
-           		              (move-sheet t-l-s x y)))
+                            ;; FIX (eq window pane) I think its necessary due to a bug in McCLIM tracking-pointer
+                            (when (eq window pane)
+                              (multiple-value-bind (x y)
+                                  (transform-position (sheet-delta-transformation window (sheet-parent t-l-s)) x y)
+                                (move-sheet t-l-s x y))))
            (:pointer-button-release (event x y)
-        		    (multiple-value-bind (x y)
-                        (transform-position (sheet-delta-transformation pane (sheet-parent t-l-s)) x y)
-        		      (move-sheet t-l-s x y))
+                                    ;; FIX (eq window pane) I think its necessary due to a bug in McCLIM tracking-pointer
+                            (when (eq (event-sheet event) pane)
+                              (multiple-value-bind (x y)
+                                  (transform-position (sheet-delta-transformation (event-sheet event) (sheet-parent t-l-s)) x y)
+                                (move-sheet t-l-s x y)))
                     (clime:frame-display-pointer-documentation-string *wm-application* "")
         		    (return-from track)))))
       ((eql button +pointer-right-button+)
@@ -104,13 +114,15 @@
        (block track
          (tracking-pointer (pane :multiple-window t)
            (:pointer-motion (window x y)
-           		    (multiple-value-bind (x y)
-                                        (transform-position (sheet-delta-transformation pane t-l-s) x y)
-                                      (resize-sheet t-l-s x y)))
+                            (when (eq window pane)
+                              (multiple-value-bind (x y)
+                                  (transform-position (sheet-delta-transformation window t-l-s) x y)
+                                (resize-sheet t-l-s x y))))
            (:pointer-button-release (event x y)
-                                    (multiple-value-bind (x y)
-                                        (transform-position (sheet-delta-transformation pane t-l-s) x y)
-                                      (resize-sheet t-l-s x y))
+                                    (when (eq (event-sheet event) pane)
+                                      (multiple-value-bind (x y)
+                                          (transform-position (sheet-delta-transformation (event-sheet event) t-l-s) x y)
+                                        (resize-sheet t-l-s x y)))
                                     (clime:frame-display-pointer-documentation-string *wm-application* "")
                                     (return-from track))))))))
 

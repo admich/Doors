@@ -59,17 +59,11 @@
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-configuration-request-event))
   (with-slots (window x y width height) event
     (when (and width height)
-      (resize-sheet pane width height)
-      (layout-frame (pane-frame pane)))))
+      (layout-frame (pane-frame pane) width (+ (ornaments-height (frame-manager (pane-frame pane))) height)))))
+
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-destroy-event))
   (frame-exit (pane-frame pane)))
-
-(defmethod note-sheet-region-changed :after ((sheet foreign-application-pane))
-  (configure-foreign-application sheet))
-
-(defmethod note-sheet-transformation-changed :after ((sheet foreign-application-pane))
-  (configure-foreign-application sheet))
 
 (defmethod compose-space ((pane foreign-application-pane) &key width height)
   (declare (ignore width height))
