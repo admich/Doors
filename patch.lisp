@@ -107,7 +107,7 @@
   (when (and (or width height)
              (not (and width height)))
     (error "LAYOUT-FRAME must be called with both WIDTH and HEIGHT or neither"))
-  (with-inhibited-dispatch-repaint ()
+  (with-inhibited-repaint-sheet ()
     (let ((tls (frame-top-level-sheet frame)))
       (when (and (null width) (null height))
         (let ((space (compose-space tls)))
