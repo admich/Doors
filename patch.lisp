@@ -95,22 +95,6 @@
 ;;           (layout-frame frame)))
 ;;       (signal 'frame-layout-changed :frame frame))))
 
-;;; compared to standard mccclim method here the layout protocol is
-;;; invoked on top-level-sheet and not on frame-panes.
-(defmethod layout-frame ((frame application-frame) &optional width height)
-  (when (and (or width height)
-             (not (and width height)))
-    (error "LAYOUT-FRAME must be called with both WIDTH and HEIGHT or neither"))
-  (with-inhibited-repaint-sheet ()
-    (let ((tls (frame-top-level-sheet frame)))
-      (when (and (null width) (null height))
-        (let ((space (compose-space tls)))
-          (setq width (space-requirement-width space))
-          (setq height (space-requirement-height space))))
-      (unless (and (= width (bounding-rectangle-width tls))
-                   (= height (bounding-rectangle-height tls)))
-        (resize-sheet tls width height))
-      (allocate-space tls width height))))
 
 ;;; compared to mcclim when the port is the WM we don't need to do nothing here
 (defmethod handle-event ((sheet top-level-sheet-pane)
