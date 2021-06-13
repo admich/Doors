@@ -52,6 +52,7 @@
 
 (defmethod process-next-event ((port doors-port) &key wait-function (timeout nil))
   (let ((*doors-port* port)
+        (clim-clx::*clx-port* port)
         (*wait-function* wait-function))
     (when (maybe-funcall wait-function)
       (return-from process-next-event
@@ -160,7 +161,7 @@
              ;; release event. We ignore the latter. -- jd 2019-09-01
              (when (eq event-key :button-press)
                (make-instance 'climi::pointer-scroll-event
-                              :pointer 0
+                              :pointer (port-pointer *doors-port*)
                               :button button :x x :y y
                               :graft-x root-x
                               :graft-y root-y
@@ -178,7 +179,7 @@
              (make-instance (if (eq event-key :button-press)
                                 'pointer-button-press-event
                                 'pointer-button-release-event)
-                            :pointer 0
+                            :pointer (port-pointer *doors-port*)
                             :button button :x x :y y
                             :graft-x root-x
                             :graft-y root-y
@@ -211,7 +212,7 @@
                                              (:grab 'pointer-grab-enter-event)
                                              (:ungrab 'pointer-ungrab-enter-event)
                                              (t 'pointer-enter-event))))
-                          :pointer 0 :button code
+                          :pointer (port-pointer *doors-port*) :button code
                           :x x :y y
                           :graft-x root-x
                           :graft-y root-y
@@ -232,7 +233,7 @@
          (let ((modifier-state (clim-xcommon:x-event-state-modifiers *doors-port*
                                                                      state)))
            (make-instance 'pointer-motion-event
-                          :pointer 0 :button code
+                          :pointer (port-pointer *doors-port*) :button code
                           :x x :y y
                           :graft-x root-x
                           :graft-y root-y
@@ -274,7 +275,7 @@
        (maybe-funcall *wait-function*))
       (:client-message
        (with-sheet-from-window (sheet)
-         (or (port-client-message sheet time type data)
+         (or (clim-clx::port-client-message sheet time type data)
              (maybe-funcall *wait-function*))))
       (t
        (unless (xlib:event-listen (clx-port-display *doors-port*))
@@ -286,27 +287,6 @@
     (defmethod release-selection ((port doors-port) (selection (eql wm-sel)) object)
       (stop-wm port))))
 
-
-;; copied from clim-clx
-(defun port-client-message (sheet time type data)
-  (case type
-    (:wm_protocols
-     (let ((message (xlib:atom-name (slot-value *doors-port* 'clim-clx::display) (aref data 0))))
-       (case message
-         (:wm_take_focus
-          ;; hmm, this message seems to be sent twice.
-          (when-let ((mirror (sheet-mirror sheet)))
-            (xlib:set-input-focus (clx-port-display *doors-port*)
-                                  (window mirror) :parent (elt data 1)))
-          (make-instance 'window-manager-focus-event :sheet sheet :timestamp time))
-         (:wm_delete_window
-          (make-instance 'window-manager-delete-event :sheet sheet :timestamp time))
-         (otherwise
-          (warn "Unprocessed WM Protocols message: ~:_message = ~S;~:_ data = ~S;~_ sheet = ~S."
-                message data sheet)))))
-    (otherwise
-     (warn "Unprocessed client message: ~:_type = ~S;~:_ data = ~S;~_ sheet = ~S."
-           type data sheet))))
 
 (defmethod queue-event ((client application-frame) event)
   (climi::event-queue-append (climi::frame-event-queue client) event))
