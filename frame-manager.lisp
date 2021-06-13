@@ -154,33 +154,34 @@
   frame)
 
 (defmethod adopt-frame ((fm doors-frame-manager) (frame standard-application-frame))
-  (setf (slot-value fm 'climi::frames) (cons frame (slot-value fm 'climi::frames)))
-  (setf (climi::%frame-manager frame) fm)
-  (setf (graft frame) (find-graft :port (port frame)))
-  (let ((*application-frame* frame)
-        (event-queue (climi::frame-event-queue frame)))
-    (generate-panes fm frame)
-    (setf (slot-value frame 'climi::top-level-sheet)
-          (find-pane-for-frame fm frame))
-    (let ((top-level-sheet (frame-top-level-sheet frame)))
-      (unless (sheet-parent top-level-sheet)
-        (sheet-adopt-child (find-frame-container fm frame) top-level-sheet))
-      ;; Find the size of the new frame
-      (multiple-value-bind (w h) (climi::frame-geometry* frame)
-        ;; automatically generates a window-configuation-event
-        ;; which then calls allocate-space
-        ;;
-        ;; Not any longer, we turn off CONFIGURE-NOTIFY events until the
-        ;; window is mapped and do the space allocation now, so that all
-        ;; sheets will have their correct geometry at once. --GB
-        (change-space-requirements top-level-sheet :width w :height h
-                                   :resize-frame t)
-        (setf (sheet-region top-level-sheet) (make-bounding-rectangle 0 0 w h))
-        (allocate-space top-level-sheet w h)))
-    (setf (slot-value frame 'climi::state) :disabled)
-    (when (typep event-queue 'climi::event-queue)
-      (setf (climi::event-queue-port event-queue) (port fm)))
-    frame))
+  (call-next-method)
+  ;; (setf (slot-value fm 'climi::frames) (cons frame (slot-value fm 'climi::frames)))
+  ;; (setf (climi::%frame-manager frame) fm)
+  ;; (let ((*application-frame* frame)
+  ;;       (event-queue (climi::frame-event-queue frame)))
+  ;;   (generate-panes fm frame)
+  ;;   (setf (slot-value frame 'climi::top-level-sheet)
+  ;;         (find-pane-for-frame fm frame))
+  ;;   (let ((top-level-sheet (frame-top-level-sheet frame)))
+  ;;     (unless (sheet-parent top-level-sheet)
+  ;;       (sheet-adopt-child (find-frame-container fm frame) top-level-sheet))
+  ;;     ;; Find the size of the new frame
+  ;;     (multiple-value-bind (w h) (climi::frame-geometry* frame)
+  ;;       ;; automatically generates a window-configuation-event
+  ;;       ;; which then calls allocate-space
+  ;;       ;;
+  ;;       ;; Not any longer, we turn off CONFIGURE-NOTIFY events until the
+  ;;       ;; window is mapped and do the space allocation now, so that all
+  ;;       ;; sheets will have their correct geometry at once. --GB
+  ;;       (change-space-requirements top-level-sheet :width w :height h
+  ;;                                  :resize-frame t)
+  ;;       (setf (sheet-region top-level-sheet) (make-bounding-rectangle 0 0 w h))
+  ;;       (allocate-space top-level-sheet w h)))
+  ;;   (setf (slot-value frame 'climi::state) :disabled)
+  ;;   (when (typep event-queue 'climi::event-queue)
+  ;;     (setf (climi::event-queue-port event-queue) (port fm)))
+  ;;   frame)
+  )
 
 (defmethod find-frame-container ((fm doors-frame-manager) (frame application-frame))
   (graft frame))
@@ -190,20 +191,22 @@
 
 
 (defmethod find-pane-for-frame ((fm doors-frame-manager) (frame application-frame))
-  (cond
-    ((and (frame-top-level-sheet frame) (sheet-ancestor-p (frame-panes frame) (frame-top-level-sheet frame)))
-     (frame-top-level-sheet frame))
-    ((frame-top-level-sheet frame)
-     (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
-     (frame-top-level-sheet frame))
-    (t (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
-                              :name (frame-name frame)
-                              :pretty-name (frame-pretty-name frame)
-                              :icon (clime:frame-icon frame)
-                              ;; sheet is enabled from enable-frame
-                              :enabled-p nil)))
-        (sheet-adopt-child tls (frame-panes frame))
-        tls))))
+  ;; (cond
+  ;;   ((and (frame-top-level-sheet frame) (sheet-ancestor-p (frame-panes frame) (frame-top-level-sheet frame)))
+  ;;    (frame-top-level-sheet frame))
+  ;;   ((frame-top-level-sheet frame)
+  ;;    (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
+  ;;    (frame-top-level-sheet frame))
+  ;;   (t (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
+  ;;                             :name (frame-name frame)
+  ;;                             :pretty-name (frame-pretty-name frame)
+  ;;                             :icon (clime:frame-icon frame)
+  ;;                             ;; sheet is enabled from enable-frame
+  ;;                             :enabled-p nil)))
+  ;;       (sheet-adopt-child tls (frame-panes frame))
+  ;;       tls)))
+  (call-next-method )
+  )
 
 (defmethod find-pane-for-frame ((fm doors-stack-frame-manager) (frame application-frame))
   (cond

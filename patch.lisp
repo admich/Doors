@@ -61,17 +61,17 @@
       (disown-frame old-manager frame))
     (when fm (adopt-frame fm frame))))
 
-;; compared to stanard mccclim method here (frame-panes frame) can be
-;; not a direct child of the top-level-sheet but some panes could be
-;; in the middle (e.g. layout container for wm ornament)
-(defmethod generate-panes :before (fm  (frame application-frame))
-  (declare (ignore fm))
-  (when (and (frame-panes frame) (sheet-parent (frame-panes frame)))
-    (sheet-disown-child (sheet-parent (frame-panes frame))(frame-panes frame)))
-  (loop for (nil . pane) in (frame-panes-for-layout frame)
-        for parent = (sheet-parent pane)
-        if  parent
-     do (sheet-disown-child parent pane)))
+;; ;; compared to stanard mccclim method here (frame-panes frame) can be
+;; ;; not a direct child of the top-level-sheet but some panes could be
+;; ;; in the middle (e.g. layout container for wm ornament)
+;; (defmethod generate-panes :before (fm  (frame application-frame))
+;;   (declare (ignore fm))
+;;   (when (and (frame-panes frame) (sheet-parent (frame-panes frame)))
+;;     (sheet-disown-child (sheet-parent (frame-panes frame))(frame-panes frame)))
+;;   (loop for (nil . pane) in (frame-panes-for-layout frame)
+;;         for parent = (sheet-parent pane)
+;;         if  parent
+;;      do (sheet-disown-child parent pane)))
 
 ;;; compared to standard mccclim method here I ensure that the
 ;;; top-level-sheet is an ancestor of frame-pane. This is done by
