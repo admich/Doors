@@ -66,12 +66,6 @@
         if  parent
      do (sheet-disown-child parent pane)))
 
-;; compared to standard mccclim method here I don't do nothing, the
-;; top-level-sheet adopt the (frame-panes frame) not here but in the
-;; adopt-frame
-(defmethod generate-panes :after (fm (frame application-frame))
-  (declare (ignore fm)))
-
 ;;; compared to standard mccclim method here I ensure that the
 ;;; top-level-sheet is an ancestor of frame-pane. This is done by
 ;;; find-pane-for-frame.
