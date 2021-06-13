@@ -22,7 +22,7 @@
 ;; (setf clim:*default-server-path* (list :doors :mirroring :single))
 (setf clim:*default-server-path* (list :doors))
 
-(swank/backend:install-debugger-globally #'clim-debugger:debugger)
+;; (swank/backend:install-debugger-globally #'clim-debugger:debugger)
 
 (defparameter *config-file* (merge-pathnames "doors/config.lisp" (uiop:xdg-config-home)))
 (defparameter *terminal* '("xterm" "xterm"))

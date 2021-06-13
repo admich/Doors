@@ -233,16 +233,7 @@
                                              :event-mask '(:property-change)))))
 
 (defmethod make-graft ((port doors-port) &key (orientation :default) (units :device))
-  (let ((graft (make-instance 'doors-graft
-                              :port port
-                              :mirror (make-instance 'clim-clx::clx-mirror :window (clim-clx::clx-port-window port))
-		 :orientation orientation :units units))
-        (width (xlib:screen-width (clim-clx::clx-port-screen port)))
-        (height (xlib:screen-height (clim-clx::clx-port-screen port))))
-    (climi::%%set-sheet-region (make-bounding-rectangle 0 0 width height)
-                               graft)
-    (push graft (climi::port-grafts port))
-    graft))
+  (change-class (call-next-method) 'doors-graft))
 
 (defmethod port-set-mirror-transformation :after ((port doors-port) mirror mirror-transformation)
   (xlib:display-force-output (clim-clx::clx-port-display port)))
