@@ -26,8 +26,6 @@
                 #:window-destroy-event
                 #:frame-managers
                 #:maybe-funcall
-                #:%sheet-mirror-region
-                #:%sheet-mirror-transformation
                 #:pointer-grab-enter-event
                 #:pointer-grab-leave-event
                 #:pointer-ungrab-enter-event
