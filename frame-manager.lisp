@@ -153,10 +153,9 @@
   (port-force-output (port fm))
   frame)
 
-(defmethod adopt-frame ((fm doors-frame-manager) (frame application-frame))
+(defmethod adopt-frame ((fm doors-frame-manager) (frame standard-application-frame))
   (setf (slot-value fm 'climi::frames) (cons frame (slot-value fm 'climi::frames)))
   (setf (climi::%frame-manager frame) fm)
-  (setf (port frame) (port fm))
   (setf (graft frame) (find-graft :port (port frame)))
   (let ((*application-frame* frame)
         (event-queue (climi::frame-event-queue frame)))
@@ -226,7 +225,7 @@
         (sheet-adopt-child tls (vertically () ornaments-pane frame-panes))
         tls))))
 
-(defmethod adopt-frame :after ((fm doors-fullscreen-frame-manager) (frame application-frame))
+(defmethod adopt-frame :after ((fm doors-fullscreen-frame-manager) (frame standard-application-frame))
   (let ((t-l-s (frame-top-level-sheet frame)))
     (move-and-resize-sheet t-l-s 0 0 (graft-width (graft frame)) (graft-height (graft frame))))
   (layout-frame frame (graft-width (graft frame)) (graft-height (graft frame))))
