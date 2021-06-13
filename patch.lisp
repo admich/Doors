@@ -18,7 +18,14 @@
 ;;;; Some patch that change normal McCLIM behaviour.
 
 (in-package :climi)
+;;;; some bug in McCLIM (make PR for this
 
+;;; graft must work on application-frame
+(defmethod graft ((frame application-frame))
+  (when-let ((tls (frame-top-level-sheet frame)))
+    (graft tls)))
+
+;;;;
 (defun find-frame-manager (&rest options &key port &allow-other-keys)
   (declare (special *frame-manager*))
   (climi::with-keywords-removed (options (:port))
