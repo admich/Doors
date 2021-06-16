@@ -40,7 +40,8 @@
       (when height (setf (xlib:drawable-height window) height)))))
 
 (defmethod distribute-event :around ((port doors-port) (event keyboard-event))
-  (if (eq (graft port) (event-sheet event))
+  (if (or (eq (graft port) (event-sheet event))
+          (loop for x in *grabbed-keystrokes* thereis (event-matches-gesture-name-p event x)))
       (climi::dispatch-event-copy (frame-query-io *wm-application*) event)
       (call-next-method)))
 
