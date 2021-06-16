@@ -17,11 +17,143 @@
 
 (in-package :clim-doors)
 
-(defparameter *wm-application* '())
+(defclass doors-frame-manager (standard-frame-manager)
+  ((mirroring :initarg :mirroring
+              :initform :full
+              :reader mirroring)
+   (class-gensym :initarg :class-gensym
+                 :initform (gensym "DOORS-")
+                 :reader class-gensym)))
 
-(defclass doors-frame-manager (clim-clx::clx-frame-manager)
-  ()
-  (:default-initargs :class-gensym (gensym "DOORS-")))
+;;; We use &ALLOW-OTHER-KEYS since the INITIALIZE-INSTANCE for
+;;; CLX-PORT passes various initargs that CLX-FRAME-MANAGER doesn't
+;;; necessarily accept.
+(defmethod initialize-instance :after ((instance doors-frame-manager)
+                                       &key &allow-other-keys))
+
+;; Abstract pane lookup logic copied from clim-clx
+
+(defmethod find-concrete-pane-class ((fm doors-frame-manager)
+                                     pane-type &optional errorp)
+  ;; This backend doesn't have any specialized pane implementations
+  ;; but depending on circumstances it may add optional mirroring to
+  ;; the class by defining an ad-hoc subclass. Such automatically
+  ;; defined concrete classes use a name that is interned in the
+  ;; backend package and derived from the original class name by
+  ;; including a gensym prefix, the original symbol package and the
+  ;; original symbol name.
+  (declare (ignore errorp))
+  (maybe-add-mirroring-superclasses
+   (call-next-method) (mirroring fm)
+   (symbol-name (class-gensym fm)) (find-package '#:clim-doors)
+   (lambda (concrete-pane-class)
+     `(,(find-class 'mirrored-sheet-mixin)
+       ,@(unless (subtypep concrete-pane-class 'sheet-with-medium-mixin)
+           `(,(find-class 'permanent-medium-sheet-output-mixin)))
+       ,concrete-pane-class))))
+
+;;; Default mirroring predicate
+(defun add-mirroring-superclasses-p (class mirroring)
+  (cond ((functionp mirroring)
+         (funcall mirroring class))
+        ((subtypep class 'mirrored-sheet-mixin)
+         nil)
+        ((and (eq mirroring :single)
+              (subtypep class 'top-level-sheet-pane))
+         t)
+        ((and (eq mirroring :full)
+              (subtypep class 'basic-pane))
+         t)
+        ((and (eq mirroring :random) ; for testing
+              (or (subtypep class 'top-level-sheet-pane)
+                  (zerop (random 2)))))))
+
+;;; This is an example of how MAKE-PANE-1 might create specialized
+;;; instances of the generic pane types based upon the type of the
+;;; frame manager. However, in the CLX case, we don't expect there to
+;;; be any CLX specific panes. CLX uses the default generic panes
+;;; instead.
+(defun maybe-add-mirroring-superclasses
+    (concrete-pane-class mirroring
+     class-name-prefix class-name-package compute-superclasses)
+  (flet ((make-class-name (concrete-class-name)
+           (intern (format nil "~A-~A:~A"
+                           class-name-prefix
+                           (alexandria:if-let ((package (symbol-package
+                                              concrete-class-name)))
+                             (package-name package)
+                             "UNINTERNED")
+                           (symbol-name concrete-class-name))
+                   class-name-package))
+         (define-class (metaclass name concrete-class)
+           (let* ((superclasses (funcall compute-superclasses concrete-class))
+                  (class (make-instance metaclass
+                                        :name name
+                                        :direct-superclasses superclasses)))
+             (setf (find-class name) class))))
+    (if (add-mirroring-superclasses-p concrete-pane-class mirroring)
+        (multiple-value-bind (concrete-class concrete-class-name)
+            (if (typep concrete-pane-class 'class)
+                (values concrete-pane-class (class-name concrete-pane-class))
+                (values (find-class concrete-pane-class) concrete-pane-class))
+          (multiple-value-bind (class-symbol foundp)
+              (make-class-name concrete-class-name)
+            (if foundp
+                (find-class class-symbol)
+                (define-class (class-of concrete-class)
+                              class-symbol
+                              concrete-class))))
+        concrete-pane-class)))
+
+(defmethod adopt-frame :before ((fm doors-frame-manager) (frame menu-frame))
+  ;; Temporary kludge.
+  (when (eq (slot-value frame 'climi::top) nil)
+    (multiple-value-bind (x y)
+        (xlib:query-pointer (clim-clx::clx-port-window (port fm)))
+      (incf x 10)
+      (setf (slot-value frame 'climi::left) x
+            (slot-value frame 'climi::top) y))))
+
+(defmethod adopt-frame :after ((fm doors-frame-manager) (frame menu-frame))
+  (when (sheet-enabled-p (slot-value frame 'top-level-sheet))
+    (xlib:map-window
+     (clim-clx::window (sheet-direct-mirror (slot-value frame 'top-level-sheet))))))
+
+(defmethod adopt-frame :after
+    ((fm doors-frame-manager) (frame standard-application-frame))
+  (let ((sheet (slot-value frame 'top-level-sheet)))
+    (let* ((top-level-sheet (frame-top-level-sheet frame))
+           (mirror (sheet-direct-mirror top-level-sheet))
+           (window (clim-clx::window mirror)))
+      (case (clime:find-frame-type frame)
+        (:override-redirect (setf (xlib:window-override-redirect window) :on))
+        (:dialog (xlib:change-property window
+                                       :_NET_WM_WINDOW_TYPE
+                                       (list (xlib:intern-atom
+                                              (xlib:window-display window)
+                                              :_NET_WM_WINDOW_TYPE_DIALOG))
+                                       :atom 32)))
+      (multiple-value-bind (w h x y) (climi::frame-geometry* frame)
+        (declare (ignore w h))
+        (when (and x y)
+          (setf (xlib:drawable-x window) x
+                (xlib:drawable-y window) y))
+        (clim-clx::tell-window-manager-about-space-requirements top-level-sheet))
+      ;; :structure-notify events were not yet turned on, turn them
+      ;; on now, so that we get informed about the windows position
+      ;; (and possibly size), when the window gets maped.
+      (setf (xlib:window-event-mask window)
+            (logior (xlib:window-event-mask window)
+                    (xlib:make-event-mask :structure-notify)))
+      ;; Care for calling-frame, be careful not to trip on missing bits
+      (let* ((calling-frame (frame-calling-frame frame))
+             (tls (and calling-frame (frame-top-level-sheet calling-frame)))
+             (calling-mirror (and tls (sheet-mirror tls))))
+        (when calling-mirror
+          (setf (xlib:transient-for window) (clim-clx::window calling-mirror))))
+      ;;
+      (when (sheet-enabled-p sheet)
+        (xlib:map-window window)))))
 
 (defclass doors-stack-frame-manager (doors-frame-manager)
   ())
@@ -32,10 +164,10 @@
 (defclass doors-tile-frame-manager (doors-frame-manager)
   ())
 
-(defclass doors-fullscreen-frame-manager (doors-frame-manager)
+(defclass doors-onroot-frame-manager (doors-frame-manager)
   ())
 
-(defclass doors-onroot-frame-manager (doors-frame-manager)
+(defclass doors-fullscreen-frame-manager (doors-onroot-frame-manager)
   ())
 
 (defmethod climi::port-frame-manager-conforms-to-options-p ((port doors-port) frame-manager &rest options)
@@ -50,183 +182,43 @@
                (:tile (typep frame-manager 'doors-tile-frame-manager)))
              t))))
 
-;;;; wm-ornaments-pane
-(defparameter *ornaments-height* 15)
-
-(defgeneric ornaments-height (frame-manager)
-  (:documentation "The height of the ornaments drawn by the frame manager FRAME-MANAGER")
-  (:method ((fm doors-frame-manager)) 0)
-  (:method ((fm doors-stack-frame-manager)) 15))
-
-(defclass wm-ornaments-pane (basic-gadget
-                             immediate-sheet-input-mixin)
-  ((managed-frame :initarg :managed-frame :initform nil :accessor managed-frame)))
-
-(defmethod compose-space ((pane wm-ornaments-pane) &key width height)
-  (declare (ignore width height))
-  (make-space-requirement :width  15
-                          :height 15
-                          :max-height 15))
-
-(defmethod handle-repaint ((pane wm-ornaments-pane) region)
-  (let* ((region (sheet-region pane))
-         (title (frame-pretty-name (pane-frame pane))))
-    (with-bounding-rectangle* (x1 y1 x2 y2) region
-      (draw-text* pane title 5 y2 :align-y :bottom))))
-
-(defmethod handle-event ((pane wm-ornaments-pane) (event pointer-enter-event))
-  (clime:frame-display-pointer-documentation-string *wm-application* "L: Move  R: Resize"))
-
-(defmethod handle-event ((pane wm-ornaments-pane) (event pointer-exit-event))
-  (clime:frame-display-pointer-documentation-string *wm-application* ""))
-
-(defmethod handle-event ((pane wm-ornaments-pane) (event pointer-button-press-event))
-  (let ((button (pointer-event-button event))
-        (t-l-s (frame-top-level-sheet (managed-frame pane)))
-        (graft  (graft pane))
-        (pointer (port-pointer (port pane))))
-    (cond
-      ((eql button +pointer-left-button+)
-       (multiple-value-bind (x y) (transform-position (sheet-delta-transformation t-l-s graft) 0 0)
-         (setf (pointer-position pointer) (values x y)))
-       (clime:frame-display-pointer-documentation-string *wm-application* "Drag to move")
-       (block track
-         (tracking-pointer (pane :multiple-window t)
-           (:pointer-motion (window x y)
-                            ;; FIX (eq window pane) I think its necessary due to a bug in McCLIM tracking-pointer
-                            (when (eq window pane)
-                              (multiple-value-bind (x y)
-                                  (transform-position (sheet-delta-transformation window (sheet-parent t-l-s)) x y)
-                                (move-sheet t-l-s x y))))
-           (:pointer-button-release (event x y)
-                                    ;; FIX (eq window pane) I think its necessary due to a bug in McCLIM tracking-pointer
-                            (when (eq (event-sheet event) pane)
-                              (multiple-value-bind (x y)
-                                  (transform-position (sheet-delta-transformation (event-sheet event) (sheet-parent t-l-s)) x y)
-                                (move-sheet t-l-s x y)))
-                    (clime:frame-display-pointer-documentation-string *wm-application* "")
-        		    (return-from track)))))
-      ((eql button +pointer-right-button+)
-       (clime:frame-display-pointer-documentation-string *wm-application* "Drag to resize")
-       (multiple-value-bind (w h) (bounding-rectangle-size t-l-s)
-         (multiple-value-bind (x y) (transform-position (sheet-delta-transformation t-l-s graft) w h)
-           (setf (pointer-position pointer) (values x y))))
-       (block track
-         (tracking-pointer (pane :multiple-window t)
-           (:pointer-motion (window x y)
-                            (when (eq window pane)
-                              (multiple-value-bind (x y)
-                                  (transform-position (sheet-delta-transformation window t-l-s) x y)
-                                (resize-sheet t-l-s x y))))
-           (:pointer-button-release (event x y)
-                                    (when (eq (event-sheet event) pane)
-                                      (multiple-value-bind (x y)
-                                          (transform-position (sheet-delta-transformation (event-sheet event) t-l-s) x y)
-                                        (resize-sheet t-l-s x y)))
-                                    (clime:frame-display-pointer-documentation-string *wm-application* "")
-                                    (return-from track))))))))
-
-(defgeneric frame-short-name (frame)
-  (:method ((frame standard-application-frame))
-    (frame-pretty-name frame)))
-
-(define-presentation-type application-frame ())
-
-(define-presentation-method present (object (type application-frame) stream view &key)
-  (declare (ignore view))
-  (format stream " ~a " (frame-short-name object)))
-
-(defmethod disown-frame ((fm doors-frame-manager) (frame application-frame))
-  (alexandria:when-let* ((event-queue (climi::frame-event-queue frame))
-                         (calling-frame (climi::frame-calling-frame frame))
-                         (calling-queue (climi::frame-event-queue calling-frame))
-                         (another-queue-p (not (eql calling-queue event-queue))))
-    (setf (climi::event-queue-port event-queue) nil))
-  (setf (slot-value fm 'climi::frames) (remove frame (slot-value fm 'climi::frames)))
-  (sheet-disown-child (sheet-parent (frame-top-level-sheet frame))
-                      (frame-top-level-sheet frame))
-  (sheet-disown-child (frame-top-level-sheet frame)
-                      (car (sheet-children (frame-top-level-sheet frame))))
-  (setf (climi::%frame-manager frame) nil)
-  (setf (slot-value frame 'climi::state) :disowned)
-  (setf (slot-value frame 'climi::top-level-sheet) nil)
-  (port-force-output (port fm))
-  frame)
-
-(defmethod adopt-frame ((fm doors-frame-manager) (frame standard-application-frame))
-  (call-next-method)
-  ;; (setf (slot-value fm 'climi::frames) (cons frame (slot-value fm 'climi::frames)))
-  ;; (setf (climi::%frame-manager frame) fm)
-  ;; (let ((*application-frame* frame)
-  ;;       (event-queue (climi::frame-event-queue frame)))
-  ;;   (generate-panes fm frame)
-  ;;   (setf (slot-value frame 'climi::top-level-sheet)
-  ;;         (find-pane-for-frame fm frame))
-  ;;   (let ((top-level-sheet (frame-top-level-sheet frame)))
-  ;;     (unless (sheet-parent top-level-sheet)
-  ;;       (sheet-adopt-child (find-frame-container fm frame) top-level-sheet))
-  ;;     ;; Find the size of the new frame
-  ;;     (multiple-value-bind (w h) (climi::frame-geometry* frame)
-  ;;       ;; automatically generates a window-configuation-event
-  ;;       ;; which then calls allocate-space
-  ;;       ;;
-  ;;       ;; Not any longer, we turn off CONFIGURE-NOTIFY events until the
-  ;;       ;; window is mapped and do the space allocation now, so that all
-  ;;       ;; sheets will have their correct geometry at once. --GB
-  ;;       (change-space-requirements top-level-sheet :width w :height h
-  ;;                                  :resize-frame t)
-  ;;       (setf (sheet-region top-level-sheet) (make-bounding-rectangle 0 0 w h))
-  ;;       (allocate-space top-level-sheet w h)))
-  ;;   (setf (slot-value frame 'climi::state) :disabled)
-  ;;   (when (typep event-queue 'climi::event-queue)
-  ;;     (setf (climi::event-queue-port event-queue) (port fm)))
-  ;;   frame)
-  )
-
 (defmethod find-frame-container ((fm doors-frame-manager) (frame application-frame))
   (graft frame))
 
 (defmethod find-frame-container ((fm doors-desktop-frame-manager) (frame application-frame))
   (find-pane-named *wm-application* 'doors::desktop))
 
-
-(defmethod find-pane-for-frame ((fm doors-frame-manager) (frame application-frame))
-  ;; (cond
-  ;;   ((and (frame-top-level-sheet frame) (sheet-ancestor-p (frame-panes frame) (frame-top-level-sheet frame)))
-  ;;    (frame-top-level-sheet frame))
-  ;;   ((frame-top-level-sheet frame)
-  ;;    (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
-  ;;    (frame-top-level-sheet frame))
-  ;;   (t (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
-  ;;                             :name (frame-name frame)
-  ;;                             :pretty-name (frame-pretty-name frame)
-  ;;                             :icon (clime:frame-icon frame)
-  ;;                             ;; sheet is enabled from enable-frame
-  ;;                             :enabled-p nil)))
-  ;;       (sheet-adopt-child tls (frame-panes frame))
-  ;;       tls)))
-  (call-next-method )
-  )
-
 (defmethod find-pane-for-frame ((fm doors-stack-frame-manager) (frame application-frame))
-  (cond
-    ((and (frame-top-level-sheet frame) (sheet-ancestor-p (frame-panes frame) (frame-top-level-sheet frame)))
-     (frame-top-level-sheet frame))
-    ((frame-top-level-sheet frame)
-     (sheet-adopt-child (car (sheet-children (frame-top-level-sheet frame))) (frame-panes frame))
-     (frame-top-level-sheet frame))
-    (t (let ((tls (make-pane-1 fm frame 'top-level-sheet-pane
-                              :name (frame-name frame)
-                              :pretty-name (frame-pretty-name frame)
-                              :icon (clime:frame-icon frame)
-                              ;; sheet is enabled from enable-frame
-                              :enabled-p nil))
-            (frame-panes (frame-panes frame))
-            (ornaments-pane (make-pane-1 fm frame 'wm-ornaments-pane
-                                         :managed-frame frame
-                                         :foreground +white+ :background +blue+ :height 20 :max-height 20 :min-height 20)))
-        (sheet-adopt-child tls (vertically () ornaments-pane frame-panes))
-        tls))))
+    (let* ((tls (make-pane-1 fm frame 'top-level-sheet-pane
+                            :name (frame-name frame)
+                            :pretty-name (frame-pretty-name frame)
+                            :icon (clime:frame-icon frame)
+                            ;; sheet is enabled from enable-frame
+                            :enabled-p nil))
+           (ornaments-pane (make-pane-1 fm frame 'wm-ornaments-pane
+                                        :managed-frame frame
+                                        :foreground +white+
+                                        :background +blue+
+                                        :height 20 :max-height 20 :min-height 20))
+           (outer (vertically () ornaments-pane tls)))
+      (sheet-adopt-child (find-frame-container fm frame) outer)
+      tls))
+
+(defmethod adopt-frame :after
+    ((fm doors-stack-frame-manager) (frame standard-application-frame))
+  (let* ((tls (frame-top-level-sheet frame))
+         (outer (sheet-parent tls)))
+    (resize-sheet outer 1000 500)
+    (allocate-space outer 1000 500)
+    (layout-frame frame 1000 480)))
+
+(defmethod disown-frame :around
+    ((fm doors-stack-frame-manager) (frame standard-application-frame))
+  (let* ((tpl-sheet (frame-top-level-sheet frame))
+         (outer (sheet-parent tpl-sheet)))
+    (sheet-disown-child (sheet-parent outer) outer)
+    (call-next-method))
+  frame)
 
 (defmethod adopt-frame :after ((fm doors-fullscreen-frame-manager) (frame standard-application-frame))
   (let ((t-l-s (frame-top-level-sheet frame)))

@@ -15,19 +15,14 @@
 ;;;; License along with this library; if not, write to the Free Software
 ;;;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 ;;;; USA
+(in-package :clim-doors)
 
-(defsystem #:mcclim-doors
-  :depends-on (#:mcclim-clx
-               #:log4cl)
-  :components((:file "package")
-              (:file "patch" )
-              (:file "freedesktop-standards")
-              (:file "graft" :depends-on ("package"))
-              (:file "port" :depends-on ("package" "graft"))
-              (:file "emergency")
-              (:file "input" :depends-on ("port"))
-              (:file "presentations")
-              (:file "containers" )
-              (:file "frame-manager" :depends-on ( "port" "containers"))
-              (:file "foreign-application" :depends-on ( "frame-manager"))))
+(defgeneric frame-short-name (frame)
+  (:method ((frame standard-application-frame))
+    (frame-pretty-name frame)))
 
+(define-presentation-type application-frame ())
+
+(define-presentation-method present (object (type application-frame) stream view &key)
+  (declare (ignore view))
+  (format stream " ~a " (frame-short-name object)))

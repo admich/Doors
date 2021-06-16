@@ -23,6 +23,8 @@
   (:import-from :climi
                 #:port-grafts
                 #:top-level-sheet-pane
+                #:top-level-sheet
+                #:menu-frame
                 #:window-destroy-event
                 #:frame-managers
                 #:maybe-funcall
