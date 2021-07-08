@@ -68,8 +68,8 @@
 (defmethod compose-space ((pane foreign-application-pane) &key width height)
   (declare (ignore width height))
   (let* ((xwin (foreign-xwindow pane))
-    	 (width (and xwin (xlib:drawable-width xwin)))
-    	 (height (and xwin (xlib:drawable-height xwin))))
+    	 (width (and xwin (ignore-errors (xlib:drawable-width xwin))))
+    	 (height (and xwin (ignore-errors (xlib:drawable-height xwin)))))
     (make-space-requirement :width  (or  width 800)
                             :height (or  height 600))))
 
@@ -114,14 +114,9 @@
                      :data (list (xlib:intern-atom (clx-port-display (port frame)) :WM_DELETE_WINDOW))))
   (call-next-method))
 
-(defmethod generate-panes :after ((fm doors-frame-manager) (frame foreign-application))
-  (when-let ((window (foreign-xwindow frame)))
-    (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
-                           window :parent)))
-
 (defmethod disown-frame :before ((frame-manager doors-frame-manager) (frame foreign-application))
   (when-let ((window (foreign-xwindow frame)))
-    (xlib:reparent-window window (clim-clx::window (sheet-mirror (graft frame))) 0 0)))
+    (xlib:reparent-window window (clim-clx::window (sheet-mirror (graft (port frame)))) 0 0)))
 
 (defmethod adopt-frame :after ((frame-manager doors-frame-manager) (frame foreign-application))
   (let* ((window (foreign-xwindow frame))
@@ -143,7 +138,7 @@
 (defun make-foreign-application (window &key (frame-manager (find-frame-manager)))
   (let ((frame (make-application-frame 'foreign-application
                                        :foreign-xwindow window
-                                       :state :disowned
+                                       :state :disabled 
                                        :frame-manager frame-manager)))
     (setf (xlib:window-event-mask window) '(:structure-notify))
     (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name "Foreign App")
