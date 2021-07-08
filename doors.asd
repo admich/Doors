@@ -21,7 +21,7 @@
 		:author "Andrea De Michele <andrea.demichele@gmail.com>"
 		:license "LGPL-2.1+"
         :version "0.0.1"
-		:depends-on (#:alexandria
+		:depends-on (#:alexandria #:uiop
                      #:mcclim #:mcclim-doors
                      #:clim-listener #:climacs #:clim-debugger #:xembed)
 		:serial t
