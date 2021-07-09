@@ -132,14 +132,18 @@
                       0))))
     (format nil "(~a: ~d%)" name (round quality))))
 
+(defun info-frames-list (&optional (stream *standard-output*) (wm *wm-application*))
+  "Present a list of the frames managed from WM on STREAM"
+  (loop for frame in (managed-frames wm)
+     when (typep frame 'standard-application-frame)
+     do
+       (if (eql frame (active-frame (port wm)))
+             (with-text-face (stream  :bold)
+               (present frame 'application-frame :stream stream))
+             (present frame 'application-frame :stream stream))))
+
 (defun display-info (frame pane)
   (format pane " " )
   (multiple-value-bind (sec min h d m y) (decode-universal-time (get-universal-time))
     (format pane "~d/~2,'0d/~2,'0d ~2,'0d:~2,'0d:~2,'0d " y m d h min sec))
-  (loop for frame in (managed-frames)
-     when (typep frame 'application-frame)
-     do
-       (if (eql frame (active-frame (port *wm-application*)))
-             (with-text-face (pane :bold)
-               (present frame 'application-frame))
-             (present frame 'application-frame))))
+  (info-frames-list pane frame))
