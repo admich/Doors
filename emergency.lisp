@@ -17,76 +17,39 @@
 
 (in-package #:clim-doors)
 
-(defparameter *emergency-event-mask* (xlib:make-event-mask :button-press :button-release :pointer-motion :button-motion :enter-window :leave-window :key-press ))
+(defun emergency-loop (&optional display)
+  (let ((dpy (if display
+                 (xlib:open-display "" :display display)
+                 (xlib:open-default-display))))
+    (unwind-protect
+         (let* ((screen (first (xlib:display-roots dpy)))
+                (grab-event-mask (xlib:make-event-mask :key-press))
+                (root (xlib:screen-root screen))
+                (win (xlib:create-window
+                      :parent root
+                      :width 1
+                      :height 1
+                      :override-redirect :on
+                      :x -10
+                      :y -10
+                      :background (xlib:alloc-color (xlib:screen-default-colormap screen) (xlib:make-color :red 1 :green 0 :blue 0))
+                      :event-mask grab-event-mask)))
+           (setf (xlib:wm-name win) "Emergency")
+           (setf (xlib:wm-icon-name win) "Emergency")
+           (xlib:map-window win)
+           (xlib:display-force-output dpy)
+           (unwind-protect
+                (progn (xlib:grab-key root :any :modifiers (+ 64 8 4)) ;; super meta ctrl
+                       (xlib:event-case (dpy)
+                         (:key-press (code window)
+                                     (case (xlib:keycode->character dpy code 0)
+                                       (#\q t)
+                                       (#\t (uiop:launch-program "xterm") nil)
+                                       (#\e (uiop:launch-program "emacs") nil)
+                                       (#\k (when-let ((wm *wm-application*)) (destroy-port (port wm))) nil)
+                                       (#\s (doors:doors :new-process t) nil)
+                                       (t nil))))))
+           (xlib:ungrab-key root :any :modifiers 0))
+      (xlib:close-display dpy))))
 
-;; (defmacro with-emergency (&body body)
-;;   (alexandria:with-gensyms (emergency-continuation)
-;;     `(flet ((,emergency-continuation () ,@body))
-;;        (invoke-with-emergency #',emergency-continuation))))
 
-;; (defun invoke-with-emergency (continuation)
-;;   (let ((dpy (xlib:open-default-display)))
-;;     (unwind-protect
-;;          (let* ((screen (first (xlib:display-roots dpy)))
-;;                 (root (xlib:screen-root screen))
-;;                 (win (xlib:create-window
-;;                       :parent root
-;;                       :width 800
-;;                       :height 600
-;;                       :x 0
-;;                       :y 0
-;;                       :override-redirect :on
-;;                       :background (xlib:alloc-color (xlib:screen-default-colormap screen) (xlib:make-color :red 0 :green 0 :blue 1))
-;;                       :event-mask *emergency-event-mask*))
-;;                 (e-code (xlib:keysym->keycodes dpy (car (xlib:character->keysyms #\e dpy))))
-;;                 (e-state 12))
-;;            (setf (xlib:wm-name win) "Doors Emergency window")
-;;            (setf (xlib:wm-icon-name win) "Doors Emergency window")           
-;;            (xlib:grab-key root e-code :modifiers e-state)
-;;            (clim-sys:make-process continuation)
-;;            (xlib:event-case (dpy)
-;;              (:key-press (code state window)
-;;                          (cond 
-;;                            ((and (eq code e-code) (eq state e-state))
-;;                             (xlib:map-window win)
-;;                             (xlib:display-force-output dpy)
-;;                             (xlib:set-input-focus dpy win :parent)
-;;                             nil)
-;;                            ((eq code (xlib:keysym->keycodes dpy (car (xlib:character->keysyms #\q dpy))))
-;;                             (frame-exit *wm-application*)
-;;                             (setf *wm-application* nil)
-;;                             (xlib:unmap-window win)
-;;                             t)
-;;                            (t nil)
-;;                            )))
-;;            (xlib:ungrab-key root (xlib:keysym->keycodes dpy (car (xlib:character->keysyms #\e dpy))) :modifiers 12))
-;;       (xlib:close-display dpy))))
-(defun emergency-start (dpy)
-  (let* ((screen (first (xlib:display-roots dpy)))
-         (root (xlib:screen-root screen))
-         (win (xlib:create-window
-               :parent root
-               :width 800
-               :height 600
-               :x 0
-               :y 0
-               :override-redirect :on
-               :background (xlib:alloc-color (xlib:screen-default-colormap screen) (xlib:make-color :red 0 :green 0 :blue 1))
-               :event-mask *emergency-event-mask*)))
-    (setf (xlib:wm-name win) "Doors Emergency window")
-    (setf (xlib:wm-icon-name win) "Doors Emergency window")
-    (xlib:map-window win)
-    (xlib:display-force-output dpy)
-    (xlib:set-input-focus dpy win :parent)
-    (xlib:event-case (dpy)
-      (:key-press (code state window)
-                  (cond                     
-                    ((eq code (xlib:keysym->keycodes dpy (car (xlib:character->keysyms #\q dpy))))
-                     (xlib:unmap-window win)
-                     (sb-ext:exit)
-                     t)
-                    ((eq code (xlib:keysym->keycodes dpy (car (xlib:character->keysyms #\c dpy))))
-                     (xlib:unmap-window win)
-                     t)
-                    (t nil)
-                    )))))

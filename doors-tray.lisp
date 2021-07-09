@@ -29,7 +29,8 @@
            #:tray-icon-height
            #:tray-icons
            #:tray-display
-           #:tray-screen))
+           #:tray-screen
+           #:kill-tray))
 
 (in-package :doors-systray)
 ;;; Event masks

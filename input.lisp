@@ -83,15 +83,15 @@
                         data override-redirect-p send-event-p
                         target property requestor selection
                         request first-keycode count value-mask child
-                        &allow-other-keys)
+                      &allow-other-keys)
   (declare (ignore first-keycode count))
   (macrolet ((with-sheet-from-window
                  ((sheet) &body body)
-		     `(when-let ((,sheet (and window
-                                      (or (getf (xlib:window-plist window) 'sheet)
-                                          (port-lookup-foreign-sheet *doors-port* window)
-                                          (graft *doors-port*)))))
-                ,@body)))
+		       `(when-let ((,sheet (and window
+                                        (or (getf (xlib:window-plist window) 'sheet)
+                                            (port-lookup-foreign-sheet *doors-port* window)
+                                            (graft *doors-port*)))))
+                  ,@body)))
     (case event-key
       ((:focus-out)
        (when  (eq :none (xlib:input-focus display))
@@ -128,64 +128,62 @@
       ((:key-press :key-release)
        (with-sheet-from-window (sheet)
          (multiple-value-bind (keyname modifier-state keysym-name)
-           (clim-clx::x-event-to-key-name-and-modifiers *doors-port*
-                                                        event-key code state)
-           (if (and (eq #\e keyname) (= modifier-state 1536))
-               (emergency-start display)
-               (make-instance (if (eq event-key :key-press)
-                                  'key-press-event
-                                  'key-release-event)
-                              :key-name keysym-name
-                              :key-character (and (characterp keyname) keyname)
-                              :x x :y y
-                              :graft-x root-x
-                              :graft-y root-y
-                              :sheet sheet
-                              :modifier-state modifier-state :timestamp time)))))
+             (clim-clx::x-event-to-key-name-and-modifiers *doors-port*
+                                                          event-key code state)
+           (make-instance (if (eq event-key :key-press)
+                              'key-press-event
+                              'key-release-event)
+                          :key-name keysym-name
+                          :key-character (and (characterp keyname) keyname)
+                          :x x :y y
+                          :graft-x root-x
+                          :graft-y root-y
+                          :sheet sheet
+                          :modifier-state modifier-state :timestamp time))))
       ((:button-press :button-release)
        ;; :button-press on a foreign-application change the focus on
        ;; that application and the click is replay on the foreign
        ;; application.
        (with-sheet-from-window (sheet)
          (unless (eq *wm-application* (pane-frame sheet))
-         (setf (active-frame *doors-port*) (pane-frame sheet)))
-       (when (typep sheet 'foreign-application-pane)
-         (xlib:allow-events display :replay-pointer time)
-         (return-from event-handler (maybe-funcall *wait-function*)))
-       (let ((modifier-state (clim-xcommon:x-event-state-modifiers *doors-port* state))
-             (button (clim-clx::decode-x-button-code code)))
-         (if (member button '(#.+pointer-wheel-up+
-                              #.+pointer-wheel-down+
-                              #.+pointer-wheel-left+
-                              #.+pointer-wheel-right+))
-             ;; Pointer scroll generates button press and button
-             ;; release event. We ignore the latter. -- jd 2019-09-01
-             (when (eq event-key :button-press)
-               (make-instance 'climi::pointer-scroll-event
+           (setf (active-frame *doors-port*) (pane-frame sheet)))
+         (when (typep sheet 'foreign-application-pane)
+           (xlib:allow-events display :replay-pointer time)
+           (return-from event-handler (maybe-funcall *wait-function*)))
+         (let ((modifier-state (clim-xcommon:x-event-state-modifiers *doors-port* state))
+               (button (clim-clx::decode-x-button-code code)))
+           (if (member button '(#.+pointer-wheel-up+
+                                #.+pointer-wheel-down+
+                                #.+pointer-wheel-left+
+                                #.+pointer-wheel-right+))
+               ;; Pointer scroll generates button press and button
+               ;; release event. We ignore the latter. -- jd 2019-09-01
+               (when (eq event-key :button-press)
+                 (make-instance 'climi::pointer-scroll-event
+                                :pointer (port-pointer *doors-port*)
+                                :button button :x x :y y
+                                :graft-x root-x
+                                :graft-y root-y
+                                :sheet sheet
+                                :modifier-state modifier-state
+                                :delta-x (case button
+                                           (#.+pointer-wheel-left+ -1)
+                                           (#.+pointer-wheel-right+ 1)
+                                           (otherwise 0))
+                                :delta-y (case button
+                                           (#.+pointer-wheel-up+ -1)
+                                           (#.+pointer-wheel-down+ 1)
+                                           (otherwise 0))
+                                :timestamp time))
+               (make-instance (if (eq event-key :button-press)
+                                  'pointer-button-press-event
+                                  'pointer-button-release-event)
                               :pointer (port-pointer *doors-port*)
                               :button button :x x :y y
                               :graft-x root-x
                               :graft-y root-y
-                              :sheet sheet
-                              :modifier-state modifier-state
-                              :delta-x (case button
-                                         (#.+pointer-wheel-left+ -1)
-                                         (#.+pointer-wheel-right+ 1)
-                                         (otherwise 0))
-                              :delta-y (case button
-                                         (#.+pointer-wheel-up+ -1)
-                                         (#.+pointer-wheel-down+ 1)
-                                         (otherwise 0))
-                              :timestamp time))
-             (make-instance (if (eq event-key :button-press)
-                                'pointer-button-press-event
-                                'pointer-button-release-event)
-                            :pointer (port-pointer *doors-port*)
-                            :button button :x x :y y
-                            :graft-x root-x
-                            :graft-y root-y
-                            :sheet sheet :modifier-state modifier-state
-                            :timestamp time)))))
+                              :sheet sheet :modifier-state modifier-state
+                              :timestamp time)))))
       ((:leave-notify :enter-notify)
        ;; Ignore :{ENTER,LEAVE}-NOTIFY events of kind :INFERIOR unless
        ;; the mode is :[UN]GRAB.
