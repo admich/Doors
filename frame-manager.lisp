@@ -80,7 +80,7 @@
            (intern (format nil "~A-~A:~A"
                            class-name-prefix
                            (alexandria:if-let ((package (symbol-package
-                                              concrete-class-name)))
+                                                         concrete-class-name)))
                              (package-name package)
                              "UNINTERNED")
                            (symbol-name concrete-class-name))
@@ -101,8 +101,8 @@
             (if foundp
                 (find-class class-symbol)
                 (define-class (class-of concrete-class)
-                              class-symbol
-                              concrete-class))))
+                  class-symbol
+                  concrete-class))))
         concrete-pane-class)))
 
 (defmethod adopt-frame :before ((fm doors-frame-manager) (frame menu-frame))
@@ -175,11 +175,11 @@
        (let ((fm-type (getf options :fm-type)))
          (if fm-type
              (case fm-type
-               (:fullscreen (typep frame-manager 'doors-fullscreen-frame-manager))
-               (:stack (typep frame-manager 'doors-stack-frame-manager))
-               (:desktop (typep frame-manager 'doors-desktop-frame-manager))
-               (:onroot (typep frame-manager 'doors-onroot-frame-manager))
-               (:tile (typep frame-manager 'doors-tile-frame-manager)))
+               (:fullscreen (eql (class-of frame-manager) (find-class 'doors-fullscreen-frame-manager)))
+               (:stack   (eql (class-of frame-manager) (find-class 'doors-stack-frame-manager)))
+               (:desktop (eql (class-of frame-manager) (find-class 'doors-desktop-frame-manager)))
+               (:onroot  (eql (class-of frame-manager) (find-class 'doors-onroot-frame-manager)))
+               (:tile    (eql (class-of frame-manager) (find-class 'doors-tile-frame-manager))))
              t))))
 
 (defmethod find-frame-container ((fm doors-frame-manager) (frame application-frame))
@@ -189,20 +189,20 @@
   (find-pane-named *wm-application* 'doors::desktop))
 
 (defmethod find-pane-for-frame ((fm doors-stack-frame-manager) (frame application-frame))
-    (let* ((tls (make-pane-1 fm frame 'top-level-sheet-pane
-                            :name (frame-name frame)
-                            :pretty-name (frame-pretty-name frame)
-                            :icon (clime:frame-icon frame)
-                            ;; sheet is enabled from enable-frame
-                            :enabled-p nil))
-           (ornaments-pane (make-pane-1 fm frame 'wm-ornaments-pane
-                                        :managed-frame frame
-                                        :foreground +white+
-                                        :background +blue+
-                                        :height 20 :max-height 20 :min-height 20))
-           (outer (vertically () ornaments-pane tls)))
-      (sheet-adopt-child (find-frame-container fm frame) outer)
-      tls))
+  (let* ((tls (make-pane-1 fm frame 'top-level-sheet-pane
+                           :name (frame-name frame)
+                           :pretty-name (frame-pretty-name frame)
+                           :icon (clime:frame-icon frame)
+                           ;; sheet is enabled from enable-frame
+                           :enabled-p nil))
+         (ornaments-pane (make-pane-1 fm frame 'wm-ornaments-pane
+                                      :managed-frame frame
+                                      :foreground +white+
+                                      :background +blue+
+                                      :height 20 :max-height 20 :min-height 20))
+         (outer (vertically () ornaments-pane tls)))
+    (sheet-adopt-child (find-frame-container fm frame) outer)
+    tls))
 
 (defmethod adopt-frame :after
     ((fm doors-stack-frame-manager) (frame standard-application-frame))
@@ -228,16 +228,16 @@
 (defun save-frame-geometry (frame)
   "Save the actual geometry of the frame FRAME in the slots of the FRAME"
   (let ((t-l-s (frame-top-level-sheet frame)))
-          (multiple-value-bind (x y) (transform-position (sheet-delta-transformation  t-l-s (sheet-parent t-l-s)) 0 0)
-            (multiple-value-bind (w h) (bounding-rectangle-size (sheet-region t-l-s))
-              (with-slots ((left climi::geometry-left)
-                           (top climi::geometry-top)
-                           (width climi::geometry-width)
-                           (height climi::geometry-height)) frame
-                (setf left (round x)
-                      top (round y)
-                      width (round w)
-                      height (round h)))))))
+    (multiple-value-bind (x y) (transform-position (sheet-delta-transformation  t-l-s (sheet-parent t-l-s)) 0 0)
+      (multiple-value-bind (w h) (bounding-rectangle-size (sheet-region t-l-s))
+        (with-slots ((left climi::geometry-left)
+                     (top climi::geometry-top)
+                     (width climi::geometry-width)
+                     (height climi::geometry-height)) frame
+          (setf left (round x)
+                top (round y)
+                width (round w)
+                height (round h)))))))
 
 (defmethod enable-frame :around ((frame application-frame))
   (call-next-method)
