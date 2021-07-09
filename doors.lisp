@@ -190,12 +190,8 @@
 (define-doors-command-with-grabbed-keystroke (com-maximize :name t :keystroke (#\m :super))
     ()
   (let ((frame  (active-frame (port *application-frame*))))
-    (when (and (member frame (managed-frames)) (eql (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :desktop)))
-      (let* ((tls (frame-top-level-sheet frame))
-             (desktop-region (sheet-region (find-pane-named *wm-application* 'desktop)))
-             (w (bounding-rectangle-width desktop-region))
-             (h (bounding-rectangle-height desktop-region)))
-        (move-and-resize-sheet tls 0 0 w h)))))
+    (when (and (member frame (managed-frames *application-frame*)))
+      (maximize-frame (frame-manager frame) frame))))
 
 (define-presentation-to-command-translator
     com-frame-toggle-fullscreen

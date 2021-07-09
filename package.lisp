@@ -53,7 +53,8 @@
    #:wm-selection-manager
    #:*grabbed-keystrokes*
    #:grab/ungrab-keystroke
-   #:frame-short-name))
+   #:frame-short-name
+   #:maximize-frame))
 
 (defpackage #:doors
   (:use #:clim-lisp #:clim #:clim-doors)
