@@ -135,6 +135,9 @@
                     (clamp width  (sr-min-width pane)  (sr-max-width pane))
                     (clamp height (sr-min-height pane) (sr-max-height pane)))))
 
+(defmethod allocate-space ((pane top-level-sheet-pane) width height)
+ (call-next-method))
+
 (defmethod find-pane-for-frame
     ((fm standard-frame-manager) (frame standard-application-frame))
   (make-pane-1 fm frame 'standard-top-level-sheet-pane

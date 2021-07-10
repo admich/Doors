@@ -24,7 +24,7 @@
 
 (defclass wm-ornaments-pane (basic-gadget
                              immediate-sheet-input-mixin)
-  ((managed-frame :initarg :managed-frame :initform nil :accessor managed-frame)))
+  ())
 
 (defmethod compose-space ((pane wm-ornaments-pane) &key width height)
   (declare (ignore width height))
@@ -81,7 +81,6 @@
                                     (return-from track))))))))
 
 ;; stack container
-(defclass stack-container-pane (vbox-pane)
+(defclass stack-top-level-sheet-pane (top-level-sheet-pane climi::vbox-pane)
   ()
   (:documentation "A frame container with ornaments for stack frame manager"))
-

@@ -187,37 +187,21 @@
 (defmethod find-frame-container ((fm doors-desktop-frame-manager) (frame application-frame))
   (find-pane-named *wm-application* 'doors::desktop))
 
-(defmethod find-pane-for-frame ((fm doors-stack-frame-manager) (frame application-frame))
-  (let* ((tls (make-pane-1 fm frame 'top-level-sheet-pane
-                           :name (frame-name frame)
-                           :pretty-name (frame-pretty-name frame)
-                           :icon (clime:frame-icon frame)
-                           ;; sheet is enabled from enable-frame
-                           :enabled-p nil))
-         (ornaments-pane (make-pane-1 fm frame 'wm-ornaments-pane
-                                      :managed-frame frame
-                                      :foreground +white+
-                                      :background +blue+
-                                      :height 20 :max-height 20 :min-height 20))
-         (outer (vertically () ornaments-pane tls)))
-    (sheet-adopt-child (find-frame-container fm frame) outer)
+(defmethod find-pane-for-frame
+    ((fm doors-stack-frame-manager) (frame standard-application-frame))
+  (let ((tls (make-pane-1 fm frame 'stack-top-level-sheet-pane
+               :name (frame-name frame)
+               :pretty-name (frame-pretty-name frame)
+               :icon (clime:frame-icon frame)
+               :contents (list (make-pane-1 fm frame
+                                            'wm-ornaments-pane
+                                            :foreground +white+
+                                            :background +blue+
+                                            :height 20 :max-height 20 :min-height 20))
+               ;; sheet is enabled from enable-frame
+               :enabled-p nil)))
+    (sheet-adopt-child (find-frame-container fm frame) tls)
     tls))
-
-(defmethod adopt-frame :after
-    ((fm doors-stack-frame-manager) (frame standard-application-frame))
-  (let* ((tls (frame-top-level-sheet frame))
-         (outer (sheet-parent tls)))
-    (resize-sheet outer 1000 500)
-    (allocate-space outer 1000 500)
-    (layout-frame frame 1000 480)))
-
-(defmethod disown-frame :around
-    ((fm doors-stack-frame-manager) (frame standard-application-frame))
-  (let* ((tpl-sheet (frame-top-level-sheet frame))
-         (outer (sheet-parent tpl-sheet)))
-    (sheet-disown-child (sheet-parent outer) outer)
-    (call-next-method))
-  frame)
 
 (defmethod adopt-frame :after ((fm doors-fullscreen-frame-manager) (frame standard-application-frame))
   (let ((t-l-s (frame-top-level-sheet frame)))
