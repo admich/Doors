@@ -19,6 +19,7 @@
 
 (in-package :climi)
 
+;;; find-frame-manager with options
 (defun find-frame-manager (&rest options &key port &allow-other-keys)
   (declare (special *frame-manager*))
   (climi::with-keywords-removed (options (:port))

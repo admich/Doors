@@ -239,7 +239,7 @@
   (:method ((frame-manager standard-frame-manager) frame)
     t)
   (:method ((frame-manager doors-desktop-frame-manager) frame)
-    (let* ((top-sheet (sheet-parent (frame-top-level-sheet frame)))
+    (let* ((top-sheet (frame-top-level-sheet frame))
            (desktop-region (sheet-region (sheet-parent top-sheet)))
            (w (bounding-rectangle-width desktop-region))
            (h (bounding-rectangle-height desktop-region)))

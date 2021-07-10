@@ -190,7 +190,7 @@
 (define-doors-command-with-grabbed-keystroke (com-maximize :name t :keystroke (#\m :super))
     ()
   (let ((frame  (active-frame (port *application-frame*))))
-    (when (and (member frame (managed-frames *application-frame*)))
+    (when (member frame (managed-frames *application-frame*))
       (maximize-frame (frame-manager frame) frame))))
 
 (define-presentation-to-command-translator
