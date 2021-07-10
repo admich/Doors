@@ -49,12 +49,6 @@
     (declare (ignore options))
     (eql port (port frame-manager))))
 
-(defmethod (setf frame-manager) (fm (frame application-frame))
-  (let ((old-manager (frame-manager frame)))
-    (when old-manager
-      (disown-frame old-manager frame))
-    (when fm (adopt-frame fm frame))))
-
 ;; ;; compared to stanard mccclim method here (frame-panes frame) can be
 ;; ;; not a direct child of the top-level-sheet but some panes could be
 ;; ;; in the middle (e.g. layout container for wm ornament)
