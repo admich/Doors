@@ -112,6 +112,38 @@
        ;; negative offsets are handled by the native transformation?
        (make-translation-transformation x y))))))
 
+
+;;; top-level-sheet-pane: allow top-level-sheet-pane with multiple child
+(defclass top-level-sheet-pane (top-level-sheet-mixin)
+  ()
+  (:documentation "For the first pane in the architecture"))
+
+(defclass standard-top-level-sheet-pane (top-level-sheet-pane
+                                         single-child-composite-pane)
+  ())
+
+(defclass unmanaged-top-level-sheet-pane (unmanaged-sheet-mixin standard-top-level-sheet-pane)
+  ()
+  (:documentation "Top-level sheet without window manager intervention"))
+
+(defmethod allocate-space ((pane standard-top-level-sheet-pane) width height)
+  (unless (pane-space-requirement pane)
+    (setf (pane-space-requirement pane)
+          (compose-space pane)))
+  (when-let ((child (sheet-child pane)))
+    (allocate-space child
+                    (clamp width  (sr-min-width pane)  (sr-max-width pane))
+                    (clamp height (sr-min-height pane) (sr-max-height pane)))))
+
+(defmethod find-pane-for-frame
+    ((fm standard-frame-manager) (frame standard-application-frame))
+  (make-pane-1 fm frame 'standard-top-level-sheet-pane
+               :name (frame-name frame)
+               :pretty-name (frame-pretty-name frame)
+               :icon (frame-icon frame)
+               ;; sheet is enabled from enable-frame
+               :enabled-p nil))
+
 ;;; some keysym
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)
