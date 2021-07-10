@@ -57,13 +57,20 @@
       (configure-foreign-application foreign-pane))))
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-configuration-request-event))
-  (with-slots (window x y width height) event
-    (when (and width height)
-      (layout-frame (pane-frame pane) width (+ (ornaments-height (frame-manager (pane-frame pane))) height)))))
+  ;; (with-slots (window x y width height) event
+  ;;   (when (and width height)
+  ;;     (layout-frame (pane-frame pane) width (+ (ornaments-height (frame-manager (pane-frame pane))) height))))
+  )
 
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-destroy-event))
-  (frame-exit (pane-frame pane)))
+  (let ((frame (pane-frame pane)))
+    (queue-event (frame-top-level-sheet frame)
+               (make-instance 'window-manager-delete-event :sheet (frame-top-level-sheet frame)))
+    ;; (disown-frame (frame-manager frame) frame)
+    ;; (frame-exit frame)
+    ;; (destroy-frame frame)
+    ))
 
 (defmethod compose-space ((pane foreign-application-pane) &key width height)
   (declare (ignore width height))

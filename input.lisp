@@ -72,11 +72,11 @@
         (otherwise
          (prog1 t (distribute-event port event)))))))
 
-(defun ensure-focus-frame ()
-  (if (car (doors::managed-frames *wm-application*))
-      (setf (doors::active-frame (port *wm-application*))
-            (car (doors::managed-frames *wm-application*)))
-      (doors::com-goto-wm-interactor)))
+;; (defun ensure-focus-frame ()
+;;   (if (car (doors::managed-frames *wm-application*))
+;;       (setf (doors::active-frame (port *wm-application*))
+;;             (car (doors::managed-frames *wm-application*)))
+;;       (doors::com-goto-wm-interactor)))
 
 (defun event-handler (&key display event-window window kind event-key code state mode time
                         type width height x y root-x root-y
@@ -98,7 +98,7 @@
          (xlib:set-input-focus (clim-clx::clx-port-display (port *wm-application*))
                                (clim-clx::window (sheet-mirror (graft *wm-application*)))
                                :parent)
-         (ensure-focus-frame)
+;         (ensure-focus-frame)
          (return-from event-handler (maybe-funcall *wait-function*))))
       ((:property-notify)
        (when-let ((win (port-aux-xwindow *doors-port*)))
