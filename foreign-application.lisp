@@ -65,12 +65,7 @@
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-destroy-event))
   (let ((frame (pane-frame pane)))
-    (queue-event (frame-top-level-sheet frame)
-               (make-instance 'window-manager-delete-event :sheet (frame-top-level-sheet frame)))
-    ;; (disown-frame (frame-manager frame) frame)
-    ;; (frame-exit frame)
-    ;; (destroy-frame frame)
-    ))
+    (frame-exit frame)))
 
 (defmethod compose-space ((pane foreign-application-pane) &key width height)
   (declare (ignore width height))
@@ -145,7 +140,7 @@
 (defun make-foreign-application (window &key (frame-manager (find-frame-manager)))
   (let ((frame (make-application-frame 'foreign-application
                                        :foreign-xwindow window
-                                       :state :disabled 
+                                       :state :disowned
                                        :frame-manager frame-manager)))
     (setf (xlib:window-event-mask window) '(:structure-notify))
     (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name "Foreign App")

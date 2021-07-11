@@ -43,7 +43,9 @@
 
 (defmethod (setf port-keyboard-input-focus) :after
     (sheet (port doors-port))
-  (xlib:set-input-focus (clx-port-display port) (clim-clx::window (sheet-mirror sheet)) :parent))
+  (when-let* ((mirror (sheet-mirror sheet))
+              (xwin (clim-clx::window mirror)))
+    (xlib:set-input-focus (clx-port-display port) xwin :parent)))
 
 (defmethod (setf active-frame) :after (frame (port doors-port))
   (when (member (frame-state frame) '(:disabled :shrunk))
