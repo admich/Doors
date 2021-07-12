@@ -142,6 +142,17 @@
                ;; sheet is enabled from enable-frame
                :enabled-p nil))
 
+(defun disown-frame-panes (fm frame)
+  (declare (ignore fm))
+  (when-let ((panes (frame-panes frame)))
+    (let ((top-level-sheet (frame-top-level-sheet frame)))
+      (when (sheet-ancestor-p panes top-level-sheet)
+        (sheet-disown-child top-level-sheet panes))))
+  (loop for (nil . pane) in (frame-panes-for-layout frame)
+        for parent = (sheet-parent pane)
+        when parent
+          do (sheet-disown-child parent pane)))
+
 ;;; some keysym
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)

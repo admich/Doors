@@ -22,7 +22,7 @@
               :initform :full
               :reader mirroring)
    (class-gensym :initarg :class-gensym
-                 :initform (gensym "DOORS-")
+                 :initform 'DOORS-
                  :reader class-gensym)))
 
 ;;; We use &ALLOW-OTHER-KEYS since the INITIALIZE-INSTANCE for
@@ -153,6 +153,19 @@
       ;;
       (when (sheet-enabled-p sheet)
         (xlib:map-window window)))))
+
+(defmethod (setf frame-manager)
+    ((new-manager doors-frame-manager) (frame standard-application-frame))
+  (let ((old-manager (frame-manager frame)))
+    (unless (eq new-manager old-manager)
+      (let ((old-frame-panes-for-layout (climi::frame-panes-for-layout frame)))
+        (when old-manager
+          (disown-frame old-manager frame))
+        (when (typep old-manager 'doors-frame-manager)
+          (setf (climi::frame-panes-for-layout frame) old-frame-panes-for-layout))
+        (when new-manager
+          (adopt-frame new-manager frame))
+        (setf (climi::%frame-manager frame) new-manager)))))
 
 (defclass doors-stack-frame-manager (doors-frame-manager)
   ())
