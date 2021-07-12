@@ -25,43 +25,8 @@
 (defmethod foreign-xwindow ((pane foreign-application-pane))
   (foreign-xwindow (pane-frame pane)))
 
-(defun configure-foreign-application (foreign-pane)
-  (let* ((xparent (clim-clx::window (sheet-mirror foreign-pane)))
-         (xwindow (foreign-xwindow foreign-pane))
-         (w (xlib:drawable-width xparent))
-         (h (xlib:drawable-height xparent)))
-    (when xwindow
-      (setf (xlib:drawable-width xwindow) w)
-      (setf (xlib:drawable-height xwindow) h)
-      (multiple-value-bind (x y)
-          (xlib:translate-coordinates xparent
-                                      0
-                                      0
-                                      (clx-port-window (port foreign-pane)))
-        (xlib:send-event xwindow :configure-notify nil
-        	       :event-window xwindow
-        	       :window xwindow
-                   :override-redirect-p nil
-                   :event-mask (xlib:make-event-mask :structure-notify)
-                   :x x :y y
-        	       :width w
-        	       :height h
-                   :border-width 0
-        	       :propagate-p nil)))))
-
-(defmethod handle-event :after ((sheet top-level-sheet-pane)
-                                (event window-configuration-event))
-  (when (typep (pane-frame sheet) 'foreign-application)
-    (let* ((frame (pane-frame sheet))
-           (foreign-pane (find-pane-named frame 'main)))
-      (configure-foreign-application foreign-pane))))
-
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-configuration-request-event))
-  ;; (with-slots (window x y width height) event
-  ;;   (when (and width height)
-  ;;     (layout-frame (pane-frame pane) width (+ (ornaments-height (frame-manager (pane-frame pane))) height))))
-  )
-
+  (change-space-requirements pane))
 
 (defmethod handle-event ((pane foreign-application-pane) (event window-destroy-event))
   (let ((frame (pane-frame pane)))
@@ -74,6 +39,31 @@
     	 (height (and xwin (ignore-errors (xlib:drawable-height xwin)))))
     (make-space-requirement :width  (or  width 800)
                             :height (or  height 600))))
+
+(defmethod allocate-space ((pane foreign-application-pane) width height)
+  (call-next-method)
+  (let* ((xparent (clim-clx::window (sheet-mirror pane)))
+         (xwindow (foreign-xwindow pane))
+         (w (xlib:drawable-width xparent))
+         (h (xlib:drawable-height xparent)))
+    (when xwindow
+      (setf (xlib:drawable-width xwindow) w)
+      (setf (xlib:drawable-height xwindow) h)
+      (multiple-value-bind (x y)
+          (xlib:translate-coordinates xparent
+                                      0
+                                      0
+                                      (clx-port-window (port pane)))
+        (xlib:send-event xwindow :configure-notify nil
+        	       :event-window xwindow
+        	       :window xwindow
+                   :override-redirect-p nil
+                   :event-mask (xlib:make-event-mask :structure-notify)
+                   :x x :y y
+        	       :width w
+        	       :height h
+                   :border-width 0
+        	       :propagate-p nil)))))
 
 (define-application-frame foreign-application ()
   ((foreign-xwindow :initarg :foreign-xwindow :initform nil :accessor foreign-xwindow))
@@ -131,7 +121,6 @@
                              :sync-pointer-p t
                              :sync-keyboard-p nil)
     (setf (xlib:window-event-mask parent-window) '(:substructure-notify :substructure-redirect))
-    (configure-foreign-application pane)
     (when window
       (xlib:with-server-grabbed ((clim-clx::clx-port-display (port frame-manager)))
         (xlib:reparent-window window parent-window 0 0)

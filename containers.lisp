@@ -74,8 +74,7 @@
        (block track
          (tracking-pointer (outer :multiple-window nil)
            (:pointer-motion (x y)
-                            (resize-sheet outer x y)
-                            (allocate-space outer x y))
+                            (resize-sheet outer x y))
            (:pointer-button-release (x y)
                                     (clime:frame-display-pointer-documentation-string *wm-application* "")
                                     (return-from track))))))))
@@ -84,3 +83,7 @@
 (defclass stack-top-level-sheet-pane (top-level-sheet-pane climi::vbox-pane)
   ()
   (:documentation "A frame container with ornaments for stack frame manager"))
+
+(defmethod compose-space :around ((pane stack-top-level-sheet-pane) &key width height)
+  (setf (climi::pane-space-requirement pane) nil)
+  (call-next-method))
