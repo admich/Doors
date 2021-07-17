@@ -196,6 +196,7 @@
 (define-presentation-to-command-translator
     com-frame-toggle-fullscreen
     (application-frame com-frame-toggle-fullscreen doors
+     :gesture nil
      :documentation "Toggle Fullscreen")
     (object)
     (list object))
