@@ -130,9 +130,12 @@
   (let ((frame (make-application-frame 'foreign-application
                                        :foreign-xwindow window
                                        :state :disowned
-                                       :frame-manager frame-manager)))
+                                       :frame-manager frame-manager))
+        (name (or (ignore-errors (net-wm-name window))
+                  (ignore-errors (xlib:wm-name window))
+                  "NoWin")))
     (setf (xlib:window-event-mask window) '(:structure-notify))
-    (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name "Foreign App")
+    (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name (format nil  "Foreign App: ~a" name))
     ;; usare semafori invece o server grab
     (sleep 0.5)))
 
