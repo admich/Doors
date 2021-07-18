@@ -163,3 +163,6 @@
   (xlib:delete-property (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) :WM_STATE)
   (set-xwindow-state (foreign-xwindow frame) +iconic-state+)
   (call-next-method))
+
+(defmethod xwindow-for-properties ((frame foreign-application))
+  (foreign-xwindow frame))

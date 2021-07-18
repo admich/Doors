@@ -258,3 +258,24 @@
            (h (bounding-rectangle-height desktop-region)))
       (move-and-resize-sheet top-sheet 0 0 w h)
       (allocate-space top-sheet w h))))
+
+(defgeneric xwindow-for-properties (frame)
+  (:documentation "The x window where set the properties")
+  (:method ((frame standard-application-frame))
+    (clim-clx::window (sheet-mirror (frame-top-level-sheet frame)))))
+
+(defmethod note-frame-enabled :after ((fm doors-frame-manager) (frame standard-application-frame))
+  (declare (ignore fm))
+  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32))
+
+(defmethod note-frame-disabled :after ((fm doors-frame-manager) (frame standard-application-frame))
+  (declare (ignore fm))
+  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +withdrawn-state+) :WM_STATE 32))
+
+(defmethod note-frame-iconified :after ((fm doors-frame-manager) (frame standard-application-frame))
+  (declare (ignore fm))
+  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +iconic-state+) :WM_STATE 32))
+
+(defmethod note-frame-deiconified :after ((fm doors-frame-manager) (frame standard-application-frame))
+  (declare (ignore fm))
+ (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32))
