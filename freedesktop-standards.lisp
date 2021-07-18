@@ -93,9 +93,9 @@
                         32))
 
 (defun get-utf8-property (window atom)
-  (babel:octets-to-string
-   (xlib:get-property window atom :result-type '(vector (unsigned-byte 8)))
-   :encoding :utf-8))
+  (when-let ((prop (xlib:get-property window atom
+                                      :result-type '(vector (unsigned-byte 8)))))
+    (babel:octets-to-string prop :encoding :utf-8)))
 
 (defun net-wm-name (window)
   (get-utf8-property window :_NET_WM_NAME))
