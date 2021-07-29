@@ -128,7 +128,7 @@
 
 (define-run-or-raise com-browser (first *browser*) (second *browser*) (#\b :super))
 
-(define-run-or-raise com-terminal (first *terminal*) (second *terminal*) (#\c :super))
+(define-run-or-raise com-terminal (first *terminal*) (second *terminal*) (#\t :super))
 
 (define-doors-command-with-grabbed-keystroke (com-listener :name t :keystroke (#\l :super))
     ()
