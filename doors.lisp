@@ -50,8 +50,9 @@
          (:fill desktop) pointer-doc (horizontally () (:fill info) tray)))))
 
 (defmethod default-frame-top-level :around ((frame doors) &key &allow-other-keys)
-  (with-frame-manager ((find-frame-manager :port (port frame) :fm-type :desktop))
-    (call-next-method)))
+  (let ((fm (find-frame-manager :port (port frame) :fm-type :managed)))
+    (with-frame-manager (fm)
+        (call-next-method ))))
 
 (defun managed-frames (&optional (wm *wm-application*))
   (remove-if #'(lambda (x) (eq (frame-state x) :disabled))
@@ -78,7 +79,7 @@
              (:on (start-wm port))
              (:replace (start-wm port t)))
            (alexandria:when-let ((config-file (config-file frame)))
-               (load config-file))
+             (load config-file))
            (call-next-method))
       (when (wm-selection-manager port)
         (stop-wm port))
@@ -94,8 +95,8 @@
   (with-application-frame (frame)
     (redisplay-frame-pane frame 'info))
   (clime:schedule-event (find-pane-named frame 'info)
-                  (make-instance 'info-line-event :sheet frame)
-                  1))
+                        (make-instance 'info-line-event :sheet frame)
+                        1))
 
 (defmacro define-doors-command-with-grabbed-keystroke (name-and-options arguments &rest body)
   (let* ((name (if (listp name-and-options)
@@ -107,7 +108,7 @@
          (keystroke (getf options :keystroke)))
     `(progn
        (define-doors-command (,name ,@options)
-       ,arguments ,@body)
+         ,arguments ,@body)
        (when ',keystroke (pushnew ',keystroke *grabbed-keystrokes*))
        (when *wm-application* (grab/ungrab-keystroke ',keystroke :port (port *wm-application*))))))
 
@@ -115,8 +116,8 @@
 (defun find-foreign-application (win-class)
   (let ((table (slot-value (port *wm-application*) 'clim-doors::foreign-mirror->sheet)))
     (loop for pane being the hash-value of table
-        when (string= win-class (xlib:get-wm-class (clim-doors::foreign-xwindow pane)))
-         collect (pane-frame pane))))
+          when (string= win-class (xlib:get-wm-class (clim-doors::foreign-xwindow pane)))
+            collect (pane-frame pane))))
 
 (defmacro define-run-or-raise (name sh-command win-class keystroke)
   `(define-doors-command-with-grabbed-keystroke (,name :name t :keystroke ,keystroke)
@@ -174,12 +175,13 @@
 
 (define-doors-command (com-frame-toggle-fullscreen :name t)
     ((frame 'application-frame :default (active-frame (port *application-frame*))))
-  (if (typep (frame-manager frame) 'clim-doors::doors-fullscreen-frame-manager)
-      (progn
-        (setf (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :desktop)))
-      (progn
-        (save-frame-geometry frame)
-        (setf (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :fullscreen))))
+  ;; (if (typep (frame-manager frame) 'clim-doors::doors-fullscreen-frame-manager)
+  ;;     (progn
+  ;;       (setf (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :desktop)))
+  ;;     (progn
+  ;;       (save-frame-geometry frame)
+  ;;       (setf (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :fullscreen))))
+  (warn "fullscreen must be implemented")
   (setf (active-frame (port frame)) frame))
 
 (define-doors-command-with-grabbed-keystroke (com-fullscreen :name t :keystroke (#\Space :super))
@@ -299,13 +301,13 @@
 
 (defun doors (&key new-process (port (find-port :server-path '(:doors))) (start-wm :on) (config-file *config-file*))
   ;; maybe is necessary to control if therreis another instance
-  (let* ((fm (find-frame-manager :port port :fm-type :onroot))
-        (frame (make-application-frame 'doors
-                                       :frame-manager fm
-                                       :start-wm start-wm
-                                       :config-file config-file
-                                       :width (graft-width (find-graft :port port))
-                                       :height (graft-height (find-graft :port port)))))
+  (let* ((fm (find-frame-manager :port port :fm-type :unmanaged))
+         (frame (make-application-frame 'doors
+                                        :frame-manager fm
+                                        :start-wm start-wm
+                                        :config-file config-file
+                                        :width (graft-width (find-graft :port port))
+                                        :height (graft-height (find-graft :port port)))))
     (setf *wm-application* frame)
     (if new-process
         (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name "Doors WM")

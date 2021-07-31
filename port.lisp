@@ -211,22 +211,14 @@
 (defmethod initialize-instance :after ((port doors-port) &rest args)
   (declare (ignore args))
   (let ((options (cdr (port-server-path port))))
+    ;; remove the clx-frame-manager
     (pop (slot-value port 'frame-managers))
-    (push (apply #'make-instance 'doors-onroot-frame-manager
+    (push (apply #'make-instance 'unmanaged-doors-frame-manager
 		 :port port options)
           (slot-value port 'frame-managers))
-    (push (apply #'make-instance 'doors-tile-frame-manager
+    (push (apply #'make-instance 'managed-doors-frame-manager
 		 :port port options)
           (slot-value port 'frame-managers))
-    (push (apply #'make-instance 'doors-fullscreen-frame-manager
-		 :port port options)
-	  (slot-value port 'frame-managers))
-    (push (apply #'make-instance 'doors-stack-frame-manager
-		 :port port options)
-          (slot-value port 'frame-managers))
-    (push (apply #'make-instance 'doors-desktop-frame-manager
-		 :port port options)
-	  (slot-value port 'frame-managers))
     (setf (slot-value port 'pointer)
           (make-instance 'doors-pointer :port port))
     (setf (port-aux-xwindow port) (xlib:create-window :parent (clx-port-window port)

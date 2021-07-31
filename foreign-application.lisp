@@ -106,11 +106,11 @@
                      :data (list (xlib:intern-atom (clx-port-display (port frame)) :WM_DELETE_WINDOW))))
   (call-next-method))
 
-(defmethod disown-frame :before ((frame-manager doors-frame-manager) (frame foreign-application))
+(defmethod disown-frame :before ((frame-manager managed-doors-frame-manager) (frame foreign-application))
   (when-let ((window (foreign-xwindow frame)))
     (xlib:reparent-window window (clim-clx::window (sheet-mirror (graft (port frame)))) 0 0)))
 
-(defmethod adopt-frame :after ((frame-manager doors-frame-manager) (frame foreign-application))
+(defmethod adopt-frame :after ((frame-manager managed-doors-frame-manager) (frame foreign-application))
   (let* ((window (foreign-xwindow frame))
          (pane (find-pane-named frame 'main))
          (parent-window (clim-clx::window (sheet-mirror pane))))

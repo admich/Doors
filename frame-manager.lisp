@@ -154,32 +154,10 @@
       (when (sheet-enabled-p sheet)
         (xlib:map-window window)))))
 
-(defmethod (setf frame-manager)
-    ((new-manager doors-frame-manager) (frame standard-application-frame))
-  (let ((old-manager (frame-manager frame)))
-    (unless (eq new-manager old-manager)
-      (let ((old-frame-panes-for-layout (climi::frame-panes-for-layout frame)))
-        (when old-manager
-          (disown-frame old-manager frame))
-        (when (typep old-manager 'doors-frame-manager)
-          (setf (climi::frame-panes-for-layout frame) old-frame-panes-for-layout))
-        (when new-manager
-          (adopt-frame new-manager frame))
-        (setf (climi::%frame-manager frame) new-manager)))))
-
-(defclass doors-stack-frame-manager (doors-frame-manager)
+(defclass unmanaged-doors-frame-manager (doors-frame-manager)
   ())
 
-(defclass doors-desktop-frame-manager (doors-stack-frame-manager)
-  ())
-
-(defclass doors-tile-frame-manager (doors-frame-manager)
-  ())
-
-(defclass doors-onroot-frame-manager (doors-frame-manager)
-  ())
-
-(defclass doors-fullscreen-frame-manager (doors-onroot-frame-manager)
+(defclass managed-doors-frame-manager (doors-frame-manager)
   ())
 
 (defmethod climi::port-frame-manager-conforms-to-options-p ((port doors-port) frame-manager &rest options)
@@ -187,21 +165,18 @@
        (let ((fm-type (getf options :fm-type)))
          (if fm-type
              (case fm-type
-               (:fullscreen (eql (class-of frame-manager) (find-class 'doors-fullscreen-frame-manager)))
-               (:stack   (eql (class-of frame-manager) (find-class 'doors-stack-frame-manager)))
-               (:desktop (eql (class-of frame-manager) (find-class 'doors-desktop-frame-manager)))
-               (:onroot  (eql (class-of frame-manager) (find-class 'doors-onroot-frame-manager)))
-               (:tile    (eql (class-of frame-manager) (find-class 'doors-tile-frame-manager))))
+               (:unmanaged (eql (class-of frame-manager) (find-class 'unmanaged-doors-frame-manager)))
+               (:managed   (eql (class-of frame-manager) (find-class 'managed-doors-frame-manager))))
              t))))
 
-(defmethod find-frame-container ((fm doors-frame-manager) (frame application-frame))
-  (graft frame))
+(defmethod find-frame-container ((fm unmanaged-doors-frame-manager) (frame application-frame))
+  (graft (port fm)))
 
-(defmethod find-frame-container ((fm doors-desktop-frame-manager) (frame application-frame))
+(defmethod find-frame-container ((fm managed-doors-frame-manager) (frame application-frame))
   (find-pane-named *wm-application* 'doors::desktop))
 
 (defmethod find-pane-for-frame
-    ((fm doors-stack-frame-manager) (frame standard-application-frame))
+    ((fm managed-doors-frame-manager) (frame standard-application-frame))
   (let ((tls (make-pane-1 fm frame 'stack-top-level-sheet-pane
                :name (frame-name frame)
                :pretty-name (frame-pretty-name frame)
@@ -215,11 +190,6 @@
                :enabled-p nil)))
     (sheet-adopt-child (find-frame-container fm frame) tls)
     tls))
-
-(defmethod adopt-frame :after ((fm doors-fullscreen-frame-manager) (frame standard-application-frame))
-  (let ((t-l-s (frame-top-level-sheet frame)))
-    (move-and-resize-sheet t-l-s 0 0 (graft-width (graft frame)) (graft-height (graft frame))))
-  (layout-frame frame (graft-width (graft frame)) (graft-height (graft frame))))
 
 (defun save-frame-geometry (frame)
   "Save the actual geometry of the frame FRAME in the slots of the FRAME"
@@ -251,7 +221,7 @@
   (:documentation "Maximize the FRAME according to the policy of the FRAME-MANAGER")
   (:method ((frame-manager standard-frame-manager) frame)
     t)
-  (:method ((frame-manager doors-desktop-frame-manager) frame)
+  (:method ((frame-manager managed-doors-frame-manager) frame)
     (let* ((top-sheet (frame-top-level-sheet frame))
            (desktop-region (sheet-region (sheet-parent top-sheet)))
            (w (bounding-rectangle-width desktop-region))
@@ -264,20 +234,20 @@
   (:method ((frame standard-application-frame))
     (clim-clx::window (sheet-mirror (frame-top-level-sheet frame)))))
 
-(defmethod note-frame-enabled :after ((fm doors-frame-manager) (frame standard-application-frame))
+(defmethod note-frame-enabled :after ((fm managed-doors-frame-manager) (frame standard-application-frame))
   (declare (ignore fm))
   (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32)
   (ewmh-update-client-list))
 
-(defmethod note-frame-disabled :after ((fm doors-frame-manager) (frame standard-application-frame))
+(defmethod note-frame-disabled :after ((fm managed-doors-frame-manager) (frame standard-application-frame))
   (declare (ignore fm))
   (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +withdrawn-state+) :WM_STATE 32)
   (ewmh-update-client-list))
 
-(defmethod note-frame-iconified :after ((fm doors-frame-manager) (frame standard-application-frame))
+(defmethod note-frame-iconified :after ((fm managed-doors-frame-manager) (frame standard-application-frame))
   (declare (ignore fm))
   (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +iconic-state+) :WM_STATE 32))
 
-(defmethod note-frame-deiconified :after ((fm doors-frame-manager) (frame standard-application-frame))
+(defmethod note-frame-deiconified :after ((fm managed-doors-frame-manager) (frame standard-application-frame))
   (declare (ignore fm))
  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32))
