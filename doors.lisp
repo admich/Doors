@@ -54,9 +54,10 @@
     (call-next-method)))
 
 (defun managed-frames (&optional (wm *wm-application*))
-  (loop for fm in (climi::frame-managers (port wm))
-     unless (eql fm (frame-manager wm))
-     appending (frame-manager-frames fm)))
+  (remove-if #'(lambda (x) (eq (frame-state x) :disabled))
+             (loop for fm in (climi::frame-managers (port wm))
+                   unless (eql fm (frame-manager wm))
+                     appending (frame-manager-frames fm))))
 
 (defmethod dispatch-event ((client doors) event)
   (queue-event client event))
