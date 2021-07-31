@@ -266,11 +266,13 @@
 
 (defmethod note-frame-enabled :after ((fm doors-frame-manager) (frame standard-application-frame))
   (declare (ignore fm))
-  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32))
+  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32)
+  (ewmh-update-client-list))
 
 (defmethod note-frame-disabled :after ((fm doors-frame-manager) (frame standard-application-frame))
   (declare (ignore fm))
-  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +withdrawn-state+) :WM_STATE 32))
+  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +withdrawn-state+) :WM_STATE 32)
+  (ewmh-update-client-list))
 
 (defmethod note-frame-iconified :after ((fm doors-frame-manager) (frame standard-application-frame))
   (declare (ignore fm))

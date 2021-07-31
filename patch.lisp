@@ -153,6 +153,12 @@
         when parent
           do (sheet-disown-child parent pane)))
 
+;; a frame must be disabled before the disown in this way note-frame-disabled is called.
+(defmethod disown-frame :before
+    ((fm headless-frame-manager) (frame application-frame))
+  (alexandria:removef (slot-value fm 'frames) frame)
+  (disable-frame frame))
+
 ;;; some keysym
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)

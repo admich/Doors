@@ -28,8 +28,8 @@
 
 (defconstant  +ewmh-atoms+
   '(;;; Root Window Properties (and Related Messages)
-    ;; :_NET_SUPPORTED
-    ;; :_NET_CLIENT_LIST
+    :_NET_SUPPORTED
+    :_NET_CLIENT_LIST
     ;; :_NET_NUMBER_OF_DESKTOPS
     ;; :_NET_DESKTOP_GEOMETRY
     ;; :_NET_DESKTOP_VIEWPORT
@@ -102,3 +102,34 @@
 
 (defun net-wm-icon-name (window)
   (get-utf8-property window :_NET_WM_ICON_NAME))
+
+(defun all-windows-tree (&optional (root (clim-clx::window (sheet-mirror (find-graft )))))
+  (let ((children (xlib:query-tree root)))
+    (if (null children)
+        root
+        (list root (mapcar #'(lambda (x) (all-windows-tree x)) children)))))
+
+(defun all-windows (&optional (root (clim-clx::window (sheet-mirror (find-graft )))))
+  (alexandria:flatten (all-windows-tree root)))
+
+(defun find-root ()
+  (clim-clx::window (sheet-mirror (find-graft))))
+
+(defun find-display ()
+  (clim-clx:clx-port-display (find-port)))
+
+(defun ewmh-startup ()
+  (let ((root (find-root))
+        (dpy (find-display)))
+    (xlib:change-property root :_NET_SUPPORTED
+                          (mapcar #'(lambda (x) (xlib:find-atom dpy x)) +ewmh-atoms+)
+                               :atom 32)))
+
+(defun ewmh-update-client-list ()
+  (let ((root (find-root))
+        (dpy (find-display)))
+    (xlib:change-property root :_NET_CLIENT_LIST
+                          (mapcar #'(lambda (x) (xwindow-for-properties x)) (doors::managed-frames))
+                          :window 32
+                          :transform #'xlib:drawable-id
+                          :mode :replace)))

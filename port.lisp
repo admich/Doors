@@ -186,6 +186,7 @@
                        :data (list timestamp
                                    (xlib:find-atom dpy *wm-selection*)
                                    (xlib:window-id wm-sn-manager)))
+      (ewmh-startup)
       (check-for-existing-window port)
       (loop for key in *grabbed-keystrokes* do
                 (grab/ungrab-keystroke key :port port))
