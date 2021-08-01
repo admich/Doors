@@ -54,7 +54,8 @@
    #:*grabbed-keystrokes*
    #:grab/ungrab-keystroke
    #:frame-short-name
-   #:maximize-frame))
+   #:maximize-frame
+   #:fullscreen-frame))
 
 (defpackage #:doors
   (:use #:clim-lisp #:clim #:clim-doors)

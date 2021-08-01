@@ -229,6 +229,40 @@
       (move-and-resize-sheet top-sheet 0 0 w h)
       (allocate-space top-sheet w h))))
 
+(defgeneric fullscreen-frame (frame-manager frame)
+  (:documentation "Fullscreen the FRAME according to the policy of the FRAME-MANAGER")
+  (:method ((frame-manager standard-frame-manager) frame)
+    t)
+  (:method ((frame-manager managed-doors-frame-manager) frame)
+    (let* ((tls (frame-top-level-sheet frame))
+          (panes (frame-panes frame))
+          (parent (sheet-parent tls))
+          (graft (graft frame)))
+      (if (frame-properties frame :fullscreen)
+          (progn
+            (setf (sheet-enabled-p tls) nil)
+            (when parent (sheet-disown-child parent tls))
+            (sheet-adopt-child (find-frame-container frame-manager frame) tls)
+            (setf (sheet-enabled-p tls) t)
+            (with-slots ((left climi::geometry-left)
+                         (top climi::geometry-top)
+                         (width climi::geometry-width)
+                         (height climi::geometry-height)) frame
+              (move-and-resize-sheet tls left top width height)
+              (allocate-space tls width height))
+            (setf (frame-properties frame :fullscreen) nil))
+          (progn
+            (save-frame-geometry frame)
+            (setf (sheet-enabled-p tls) nil)
+            (when parent (sheet-disown-child (sheet-parent tls) tls))
+            (sheet-adopt-child graft tls)
+            ;; maybe its better to change what McCLIM does for
+            ;; enable/disable sheet when the sheet is de/grafted
+            (setf (sheet-enabled-p tls) t)
+            (move-and-resize-sheet tls 0 0 (graft-width graft) (graft-height graft))
+            (allocate-space tls (graft-width graft) (graft-height graft))
+            (setf (frame-properties frame :fullscreen) t))))))
+
 (defgeneric xwindow-for-properties (frame)
   (:documentation "The x window where set the properties")
   (:method ((frame standard-application-frame))

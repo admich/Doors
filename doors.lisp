@@ -175,13 +175,7 @@
 
 (define-doors-command (com-frame-toggle-fullscreen :name t)
     ((frame 'application-frame :default (active-frame (port *application-frame*))))
-  ;; (if (typep (frame-manager frame) 'clim-doors::doors-fullscreen-frame-manager)
-  ;;     (progn
-  ;;       (setf (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :desktop)))
-  ;;     (progn
-  ;;       (save-frame-geometry frame)
-  ;;       (setf (frame-manager frame) (find-frame-manager :port (port frame) :fm-type :fullscreen))))
-  (warn "fullscreen must be implemented")
+  (fullscreen-frame (frame-manager frame) frame)
   (setf (active-frame (port frame)) frame))
 
 (define-doors-command-with-grabbed-keystroke (com-fullscreen :name t :keystroke (#\Space :super))
