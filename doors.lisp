@@ -31,7 +31,12 @@
 
 (define-application-frame doors ()
   ((start-wm :initarg :start-wm :initform :off :reader doors-start-wm)
-   (config-file :initarg :config-file :initform *config-file* :reader config-file))
+   (config-file :initarg :config-file :initform *config-file* :reader config-file)
+   (desktops :initarg :desktops
+             :initform (list (make-instance 'desktop :number 0 :active t) (make-instance 'desktop :number 1))
+             :accessor desktops)
+   (current-desktop :initarg :current-desktop
+                    :accessor current-desktop))
   (:menu-bar nil)
   (:panes
    (desktop (make-pane :bboard-pane :background +gray+))
@@ -48,6 +53,9 @@
    (without-interactor
        (vertically ()
          (:fill desktop) pointer-doc (horizontally () (:fill info) tray)))))
+
+(defmethod initialize-instance :after ((doors doors) &rest initargs)
+  (setf (slot-value doors 'current-desktop) (first (slot-value doors 'desktops))))
 
 (defmethod default-frame-top-level :around ((frame doors) &key &allow-other-keys)
   (let ((fm (find-frame-manager :port (port frame) :fm-type :managed)))
@@ -97,7 +105,21 @@
   (clime:schedule-event (find-pane-named frame 'info)
                         (make-instance 'info-line-event :sheet frame)
                         1))
+
+;;; Desktop
+(defmethod number-of-desktops ((frame doors))
+  (length (desktops frame)))
 
+(defmethod (setf current-desktop) :around (value (frame doors))
+  (setf (desktop-active-p (current-desktop frame)) nil)
+  (call-next-method )
+  (setf (desktop-active-p (current-desktop frame)) t)
+  (dolist (appf (managed-frames frame))
+    (if (eql (frame-properties appf :wm-desktop) (current-desktop frame))
+        (setf (sheet-enabled-p (frame-top-level-sheet appf)) t)
+        (setf (sheet-enabled-p (frame-top-level-sheet appf)) nil))))
+
+;;; Commands
 (defmacro define-doors-command-with-grabbed-keystroke (name-and-options arguments &rest body)
   (let* ((name (if (listp name-and-options)
                    (first name-and-options)
@@ -292,6 +314,10 @@
   (let* ((out (uiop:run-program "amixer -D default sset Master 1%-" :output :string))
          (state (cl-ppcre:scan-to-strings "\\[([0-9]*%)\\]" out)))
     (format (frame-query-io *application-frame*) "Audio Volume: ~a" state)))
+
+(define-doors-command (com-set-current-desktop :name t)
+    ((desktop 'desktop :prompt "Select a desktop" :gesture :select))
+  (setf (current-desktop *application-frame*) desktop))
 
 (defun doors (&key new-process (port (find-port :server-path '(:doors))) (start-wm :on) (config-file *config-file*))
   ;; maybe is necessary to control if therreis another instance

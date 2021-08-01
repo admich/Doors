@@ -142,8 +142,17 @@
                (present frame 'application-frame :stream stream))
              (present frame 'application-frame :stream stream))))
 
+(defun info-desktop-list (&optional (stream *standard-output*) (wm *wm-application*))
+  "Present a list of the desktop from WM on STREAM"
+  (let ((*standard-output* stream))
+    (format t "[")
+    (dolist (desk (desktops wm))
+      (present desk))
+    (format t "]")))
+
 (defun display-info (frame pane)
   (format pane " " )
   (multiple-value-bind (sec min h d m y) (decode-universal-time (get-universal-time))
     (format pane "~d/~2,'0d/~2,'0d ~2,'0d:~2,'0d:~2,'0d " y m d h min sec))
+  (info-desktop-list pane frame)
   (info-frames-list pane frame))

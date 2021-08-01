@@ -27,6 +27,7 @@
 		:serial t
 		:components ((:file "package")
                      (:file "doors-tray")
+                     (:file "desktop")
                      (:file "doors")
                      (:file "info-line")))
 
