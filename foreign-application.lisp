@@ -126,6 +126,16 @@
         (xlib:reparent-window window parent-window 0 0)
         (xlib:map-window window)))))
 
+(defmethod fullscreen-frame :around ((frame-manager managed-doors-frame-manager) (frame foreign-application))
+  (when-let* ((window (foreign-xwindow frame))
+              (pane (find-pane-named frame 'main)))
+    (xlib:reparent-window window (clim-clx::window (sheet-mirror (graft (port frame)))) 0 0)
+    (call-next-method)
+    (let ((parent-window (clim-clx::window (sheet-mirror pane))))
+      (xlib:with-server-grabbed ((clim-clx::clx-port-display (port frame-manager)))
+        (xlib:reparent-window window parent-window 0 0)
+        (xlib:map-window window)))))
+
 (defun make-foreign-application (window &key (frame-manager (find-frame-manager)))
   (let ((frame (make-application-frame 'foreign-application
                                        :foreign-xwindow window
