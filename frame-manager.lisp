@@ -205,7 +205,7 @@
                 width (round w)
                 height (round h)))))))
 
-(defmethod enable-frame :around ((frame application-frame))
+(defmethod enable-frame :around ((frame standard-application-frame))
   (call-next-method)
   (setf (frame-properties frame :wm-desktop) (doors::current-desktop *wm-application*))
   (set-xwindow-state (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) +normal-state+))

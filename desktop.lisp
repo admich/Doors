@@ -5,14 +5,11 @@
   ((number :initarg :number
            :initform 0
            :accessor desktop-number)
-   (frames :initarg :frames
-           :initform '()
-           :accessor desktop-frames)
    (active-p :initform nil
              :initarg :active
              :accessor desktop-active-p)))
 
-(defmethod (setf frame-properties) :around (value (frame application-frame) (property (eql :wm-desktop)))
+(defmethod (setf frame-properties) :around (value (frame standard-application-frame) (property (eql :wm-desktop)))
   (declare (ignore property))
   (call-next-method)
   (if (eql (current-desktop *wm-application*) value)
@@ -23,5 +20,5 @@
   (declare (ignore view))
   (if (desktop-active-p object)
       (with-text-face (stream :bold)
-        (format stream " ~d " (desktop-number object)))
-      (format stream " ~d " (desktop-number object))))
+        (format stream " ~d " (+ 1 (desktop-number object))))
+      (format stream " ~d " (+ 1 (desktop-number object)))))

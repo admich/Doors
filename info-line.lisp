@@ -135,7 +135,9 @@
 (defun info-frames-list (&optional (stream *standard-output*) (wm *wm-application*))
   "Present a list of the frames managed from WM on STREAM"
   (loop for frame in (managed-frames wm)
-     when (typep frame 'standard-application-frame)
+        when (and
+              (eql (current-desktop wm) (frame-properties frame :wm-desktop))
+              (typep frame 'standard-application-frame))
      do
        (if (eql frame (active-frame (port wm)))
              (with-text-face (stream  :bold)

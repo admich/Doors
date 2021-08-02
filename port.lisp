@@ -51,9 +51,10 @@
   (when (member (frame-state frame) '(:disabled :shrunk))
     (enable-frame frame))
   (when (eql (frame-state frame) :enabled)
-      (raise-frame frame)
-      (when (frame-standard-input frame)
-        (stream-set-input-focus (frame-standard-input frame)))))
+    (setf (doors::current-desktop *wm-application*) (frame-properties frame :wm-desktop))
+    (raise-frame frame)
+    (when (frame-standard-input frame)
+      (stream-set-input-focus (frame-standard-input frame)))))
 
 (defgeneric port-lookup-foreign-sheet (port window))
 (defgeneric port-register-foreign-application (port sheet window))

@@ -319,6 +319,33 @@
     ((desktop 'desktop :prompt "Select a desktop" :gesture :select))
   (setf (current-desktop *application-frame*) desktop))
 
+(define-doors-command (com-move-frame-to-desktop :name t)
+    ((frame 'application-frame :prompt "Select a frame")
+     (desktop 'desktop :prompt "Select a desktop"))
+  (setf (frame-properties frame :wm-desktop) desktop))
+
+(define-doors-command-with-grabbed-keystroke (com-set-desktop-0 :keystroke (#\1 :super))
+    ()
+  (setf (current-desktop *application-frame*) (first (desktops *application-frame*))))
+
+(define-doors-command-with-grabbed-keystroke (com-set-desktop-1 :keystroke (#\2 :super))
+    ()
+  (setf (current-desktop *application-frame*) (second (desktops *application-frame*))))
+
+(define-doors-command-with-grabbed-keystroke (com-move-to-desktop-0 :keystroke (#\1 :super :control))
+    ()
+  (let ((desktop (elt (desktops *application-frame*) 0)))
+    (setf (frame-properties (active-frame  (port *application-frame*)) :wm-desktop)
+          desktop)
+    (setf (current-desktop *application-frame*) desktop)))
+
+(define-doors-command-with-grabbed-keystroke (com-move-to-desktop-1 :keystroke (#\2 :super :control))
+    ()
+  (let ((desktop (elt (desktops *application-frame*) 1)))
+    (setf (frame-properties (active-frame  (port *application-frame*)) :wm-desktop)
+          desktop)
+    (setf (current-desktop *application-frame*) desktop)))
+
 (defun doors (&key new-process (port (find-port :server-path '(:doors))) (start-wm :on) (config-file *config-file*))
   ;; maybe is necessary to control if therreis another instance
   (let* ((fm (find-frame-manager :port port :fm-type :unmanaged))
