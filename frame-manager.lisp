@@ -181,11 +181,6 @@
                :name (frame-name frame)
                :pretty-name (frame-pretty-name frame)
                :icon (clime:frame-icon frame)
-               :contents (list (make-pane-1 fm frame
-                                            'wm-ornaments-pane
-                                            :foreground +white+
-                                            :background +blue+
-                                            :height 20 :max-height 20 :min-height 20))
                ;; sheet is enabled from enable-frame
                :enabled-p nil)))
     (sheet-adopt-child (find-frame-container fm frame) tls)
@@ -259,6 +254,7 @@
             (setf (sheet-enabled-p tls) nil)
             (when parent (sheet-disown-child parent tls))
             (sheet-adopt-child (find-frame-container frame-manager frame) tls)
+            (add-ornaments tls)
             (setf (sheet-enabled-p tls) t)
             (with-slots ((left climi::geometry-left)
                          (top climi::geometry-top)
@@ -272,6 +268,7 @@
             (setf (sheet-enabled-p tls) nil)
             (when parent (sheet-disown-child (sheet-parent tls) tls))
             (sheet-adopt-child graft tls)
+            (remove-ornaments tls)
             ;; maybe its better to change what McCLIM does for
             ;; enable/disable sheet when the sheet is de/grafted
             (setf (sheet-enabled-p tls) t)

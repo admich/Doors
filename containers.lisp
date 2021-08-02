@@ -81,8 +81,27 @@
 
 ;; stack container
 (defclass stack-top-level-sheet-pane (top-level-sheet-pane climi::vbox-pane)
-  ()
+  ((ornaments :accessor wm-ornaments))
   (:documentation "A frame container with ornaments for stack frame manager"))
+
+(defmethod initialize-instance :after ((pane stack-top-level-sheet-pane) &rest args)
+  (declare (ignore args))
+  (let* ((frame (pane-frame pane))
+         (fm (frame-manager frame)))
+    (setf (slot-value pane 'ornaments)
+          (make-pane-1 fm frame
+                       'wm-ornaments-pane
+                       :foreground +white+
+                       :background +blue+
+                       :height 20 :max-height 20 :min-height 20)))
+  (sheet-adopt-child pane (slot-value pane 'ornaments)))
+
+(defun remove-ornaments (tls)
+  (sheet-disown-child tls (wm-ornaments tls)))
+
+(defun add-ornaments (tls)
+  (sheet-adopt-child tls (wm-ornaments tls))
+  (reorder-sheets tls (reverse (sheet-children tls))))
 
 (defmethod compose-space :around ((pane stack-top-level-sheet-pane) &key width height)
   (setf (climi::pane-space-requirement pane) nil)
