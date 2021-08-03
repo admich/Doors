@@ -30,10 +30,10 @@
   '(;;; Root Window Properties (and Related Messages)
     :_NET_SUPPORTED
     :_NET_CLIENT_LIST
-    ;; :_NET_NUMBER_OF_DESKTOPS
-    ;; :_NET_DESKTOP_GEOMETRY
-    ;; :_NET_DESKTOP_VIEWPORT
-    ;; :_NET_CURRENT_DESKTOP
+    :_NET_NUMBER_OF_DESKTOPS
+    :_NET_DESKTOP_GEOMETRY
+    :_NET_DESKTOP_VIEWPORT
+    :_NET_CURRENT_DESKTOP
     ;; :_NET_DESKTOP_NAMES
     ;; :_NET_ACTIVE_WINDOW
     ;; :_NET_WORKAREA
@@ -54,7 +54,7 @@
     ;; : _NET_WM_VISIBLE_NAME
     :_NET_WM_ICON_NAME
     ;; : _NET_WM_VISIBLE_ICON_NAME
-    ;; : _NET_WM_DESKTOP
+    :_NET_WM_DESKTOP
     ;; : _NET_WM_WINDOW_TYPE
     ;; : _NET_WM_STATE
     ;; : _NET_WM_ALLOWED_ACTIONS
@@ -133,3 +133,18 @@
                           :window 32
                           :transform #'xlib:drawable-id
                           :mode :replace)))
+(defun ewmh-update-desktop ()
+  (let ((root (find-root))
+        (dpy (find-display)))
+    (xlib:change-property root :_NET_NUMBER_OF_DESKTOP
+                          (list (length (doors::desktops *wm-application*)))
+                               :cardinal 32)
+    (xlib:change-property root :_NET_DESKTOP_GEOMETRY
+                          (list (xlib:drawable-width root) (xlib:drawable-height root))
+                               :cardinal 32)
+    (xlib:change-property root :_NET_DESKTOP_VIEWPORT
+                          (list 0 0)
+                               :cardinal 32)
+    (xlib:change-property root :_NET_CURRENT_DESKTOP
+                          (list (position (doors::current-desktop *wm-application*) (doors::desktops *wm-application*)))
+                          :cardinal 32)))

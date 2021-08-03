@@ -12,6 +12,9 @@
 (defmethod (setf frame-properties) :around (value (frame standard-application-frame) (property (eql :wm-desktop)))
   (declare (ignore property))
   (call-next-method)
+  (xlib:change-property (clim-doors::xwindow-for-properties frame) :_NET_WM_DESKTOP
+                          (list (position value (doors::desktops *wm-application*)))
+                          :cardinal 32)
   (if (eql (current-desktop *wm-application*) value)
       (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
       (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil)))

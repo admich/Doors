@@ -114,6 +114,9 @@
   (setf (desktop-active-p (current-desktop frame)) nil)
   (call-next-method )
   (setf (desktop-active-p (current-desktop frame)) t)
+  (xlib:change-property (clim-doors::find-root) :_NET_CURRENT_DESKTOP
+                          (list (position (doors::current-desktop *wm-application*) (doors::desktops *wm-application*)))
+                          :cardinal 32)
   (dolist (appf (managed-frames frame))
     (if (eql (frame-properties appf :wm-desktop) (current-desktop frame))
         (setf (sheet-enabled-p (frame-top-level-sheet appf)) t)
