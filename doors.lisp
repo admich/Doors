@@ -63,7 +63,8 @@
         (call-next-method ))))
 
 (defun managed-frames (&optional (wm *wm-application*))
-  (remove-if #'(lambda (x) (eq (frame-state x) :disabled))
+  (remove-if #'(lambda (x) (or (eq (frame-state x) :disabled)
+                               (not (typep x 'standard-application-frame))))
              (loop for fm in (climi::frame-managers (port wm))
                    unless (eql fm (frame-manager wm))
                      appending (frame-manager-frames fm))))
@@ -174,7 +175,7 @@
 
 (define-doors-command-with-grabbed-keystroke (com-next-frame :name t :keystroke (#\n :super))
     ()
-  (alexandria:when-let ((frames (managed-frames)))
+  (alexandria:when-let ((frames (desktop-frames (current-desktop *wm-application*))))
     (let* ((old-active (active-frame (port *application-frame*)))
            (old-position (or (position old-active frames) 0))
            (new-active (nth (mod (1+ old-position) (length frames)) frames)))
@@ -182,7 +183,7 @@
 
 (define-doors-command-with-grabbed-keystroke (com-previous-frame :name t :keystroke (#\p :super))
     ()
-  (alexandria:when-let ((frames (managed-frames)))
+  (alexandria:when-let ((frames (desktop-frames (current-desktop *wm-application*))))
     (let* ((old-active (active-frame (port *application-frame*)))
            (old-position (or (position old-active frames) 0))
            (new-active (nth (mod (1- old-position) (length frames)) frames)))

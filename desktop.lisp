@@ -19,9 +19,13 @@
       (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
       (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil)))
 
+(defun desktop-frames (desktop)
+  (remove-if-not #'(lambda (frame) (eql desktop (frame-properties frame :wm-desktop))) (managed-frames)))
+
 (define-presentation-method present (object (type desktop) stream view &key)
   (declare (ignore view))
   (if (desktop-active-p object)
       (with-text-face (stream :bold)
         (format stream " ~d " (+ 1 (desktop-number object))))
       (format stream " ~d " (+ 1 (desktop-number object)))))
+
