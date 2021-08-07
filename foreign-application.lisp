@@ -106,11 +106,11 @@
                      :data (list (xlib:intern-atom (clx-port-display (port frame)) :WM_DELETE_WINDOW))))
   (call-next-method))
 
-(defmethod disown-frame :before ((frame-manager managed-doors-frame-manager) (frame foreign-application))
+(defmethod disown-frame :before ((frame-manager doors-frame-manager) (frame foreign-application))
   (when-let ((window (foreign-xwindow frame)))
     (xlib:reparent-window window (clim-clx::window (sheet-mirror (graft (port frame)))) 0 0)))
 
-(defmethod adopt-frame :after ((frame-manager managed-doors-frame-manager) (frame foreign-application))
+(defmethod adopt-frame :after ((frame-manager doors-frame-manager) (frame foreign-application))
   (let* ((window (foreign-xwindow frame))
          (pane (find-pane-named frame 'main))
          (parent-window (clim-clx::window (sheet-mirror pane))))
@@ -122,16 +122,6 @@
                              :sync-keyboard-p nil)
     (setf (xlib:window-event-mask parent-window) '(:substructure-notify :substructure-redirect))
     (when window
-      (xlib:with-server-grabbed ((clim-clx::clx-port-display (port frame-manager)))
-        (xlib:reparent-window window parent-window 0 0)
-        (xlib:map-window window)))))
-
-(defmethod fullscreen-frame :around ((frame-manager managed-doors-frame-manager) (frame foreign-application))
-  (when-let* ((window (foreign-xwindow frame))
-              (pane (find-pane-named frame 'main)))
-    (xlib:reparent-window window (clim-clx::window (sheet-mirror (graft (port frame)))) 0 0)
-    (call-next-method)
-    (let ((parent-window (clim-clx::window (sheet-mirror pane))))
       (xlib:with-server-grabbed ((clim-clx::clx-port-display (port frame-manager)))
         (xlib:reparent-window window parent-window 0 0)
         (xlib:map-window window)))))

@@ -86,7 +86,7 @@
           (list h min (round (* 60 rmin))))))))
 
 (define-presentation-action battery-menu
-    (battery nil doors
+    (battery nil doors-panel
              :documentation "View batteries"
              :pointer-documentation ((object stream)
                                      (format stream "~a: ~a, ~d%"

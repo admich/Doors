@@ -39,10 +39,12 @@
       (draw-text* pane title 5 y2 :align-y :bottom))))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-enter-event))
-  (clime:frame-display-pointer-documentation-string *wm-application* "L: Move  R: Resize"))
+  (when (frame-pointer-documentation-output *wm-application*)
+    (clime:frame-display-pointer-documentation-string *wm-application* "L: Move  R: Resize")))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-exit-event))
-  (clime:frame-display-pointer-documentation-string *wm-application* ""))
+  (when (frame-pointer-documentation-output *wm-application*)
+    (clime:frame-display-pointer-documentation-string *wm-application* "")))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-button-press-event))
   (let ((button (pointer-event-button event))
@@ -53,7 +55,8 @@
       ((eql button +pointer-left-button+)
        (multiple-value-bind (x y) (transform-position (sheet-delta-transformation outer graft) 0 0)
          (setf (pointer-position pointer) (values x y)))
-       (clime:frame-display-pointer-documentation-string *wm-application* "Drag to move")
+       (when (frame-pointer-documentation-output *wm-application*)
+         (clime:frame-display-pointer-documentation-string *wm-application* "Drag to move"))
        (block track
          (tracking-pointer (outer :multiple-window nil)
            (:pointer-motion (x y)
@@ -64,10 +67,12 @@
                                     (multiple-value-bind (x y)
                                         (transform-position (sheet-delta-transformation (event-sheet event) (sheet-parent outer)) x y)
                                       (move-sheet outer x y))
-                    (clime:frame-display-pointer-documentation-string *wm-application* "")
+                                    (when (frame-pointer-documentation-output *wm-application*)
+                                      (clime:frame-display-pointer-documentation-string *wm-application* ""))
         		    (return-from track)))))
       ((eql button +pointer-right-button+)
-       (clime:frame-display-pointer-documentation-string *wm-application* "Drag to resize")
+       (when (frame-pointer-documentation-output *wm-application*)
+         (clime:frame-display-pointer-documentation-string *wm-application* "Drag to resize"))
        (multiple-value-bind (w h) (bounding-rectangle-size outer)
          (multiple-value-bind (x y) (transform-position (sheet-delta-transformation outer graft) w h)
            (setf (pointer-position pointer) (values x y))))
@@ -76,7 +81,8 @@
            (:pointer-motion (x y)
                             (resize-sheet outer x y))
            (:pointer-button-release (x y)
-                                    (clime:frame-display-pointer-documentation-string *wm-application* "")
+                                    (when (frame-pointer-documentation-output *wm-application*)
+                                      (clime:frame-display-pointer-documentation-string *wm-application* ""))
                                     (return-from track))))))))
 
 ;; stack container

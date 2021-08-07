@@ -79,10 +79,10 @@
 (defun check-for-existing-window (port)
   (let ((windows (xlib:query-tree (clx-port-window port))))
     (loop for win in windows
-       unless (or (xlib:window-equal win (clim-clx::window (sheet-mirror (frame-top-level-sheet *wm-application*))))
-                  (eq (xlib:window-override-redirect win) :on)
+       unless (or (eq (xlib:window-override-redirect win) :on)
                   (eq (xlib:window-map-state win) :unmapped)) do
-         (make-foreign-application win :frame-manager (find-frame-manager :port port)))))
+                    (make-foreign-application win :frame-manager (find-frame-manager :port port)))))
+
 ;; ;;; The parameter STATE is a bit mask represented as the logical OR
 ;; ;;; of individual bits.  Each bit corresponds to a modifier or a
 ;; ;;; pointer button that is active immediately before the key was
@@ -190,12 +190,8 @@
       (ewmh-startup)
       (check-for-existing-window port)
       (loop for key in *grabbed-keystrokes* do
-                (grab/ungrab-keystroke key :port port))
-      (when *wm-application*
-        (let ((graft (graft *wm-application*)))
-          (move-sheet (frame-top-level-sheet *wm-application*) 0 0)
-          (layout-frame *wm-application* (bounding-rectangle-width graft) (bounding-rectangle-height graft))
-          (ewmh-update-desktop))))))
+        (grab/ungrab-keystroke key :port port))
+      (ewmh-update-desktop))))
 
 (defun stop-wm (port)
   "Stop xwm"
@@ -215,12 +211,6 @@
   (let ((options (cdr (port-server-path port))))
     ;; remove the clx-frame-manager
     (pop (slot-value port 'frame-managers))
-    (push (apply #'make-instance 'unmanaged-doors-frame-manager
-		 :port port options)
-          (slot-value port 'frame-managers))
-    (push (apply #'make-instance 'managed-doors-frame-manager
-		 :port port options)
-          (slot-value port 'frame-managers))
     (setf (slot-value port 'pointer)
           (make-instance 'doors-pointer :port port))
     (setf (port-aux-xwindow port) (xlib:create-window :parent (clx-port-window port)

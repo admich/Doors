@@ -1,4 +1,4 @@
-;;;; Copyright (C) 2020  Andrea De Michele
+;;;; Copyright (C) 2020, 2021  Andrea De Michele
 ;;;;
 ;;;; This library is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -39,10 +39,14 @@
       (when width (setf (xlib:drawable-width window) width))
       (when height (setf (xlib:drawable-height window) height)))))
 
+(defmethod queue-event ((client application-frame) event)
+  (climi::event-queue-append (climi::frame-event-queue client) event))
+
+;; check this two
 (defmethod distribute-event :around ((port doors-port) (event keyboard-event))
   (if (or (eq (graft port) (event-sheet event))
           (loop for x in *grabbed-keystrokes* thereis (event-matches-gesture-name-p event x)))
-      (climi::dispatch-event-copy (frame-query-io *wm-application*) event)
+      (climi::dispatch-event-copy *wm-application* event)
       (call-next-method)))
 
 (defmethod dispatch-event ((client doors-graft) event)
@@ -84,7 +88,8 @@
                         target property requestor selection
                         request first-keycode count value-mask child
                       &allow-other-keys)
-  (declare (ignore first-keycode count))
+  (declare (ignorable first-keycode count child override-redirect-p
+                     send-event-p event-window ))
   (macrolet ((with-sheet-from-window
                  ((sheet) &body body)
 		       `(when-let ((,sheet (and window
@@ -92,11 +97,13 @@
                                             (port-lookup-foreign-sheet *doors-port* window)
                                             (graft *doors-port*)))))
                   ,@body)))
+    (log:error event-key)
     (case event-key
       ((:focus-out)
+       ;;; check this 
        (when  (eq :none (xlib:input-focus display))
-         (xlib:set-input-focus (clim-clx::clx-port-display (port *wm-application*))
-                               (clim-clx::window (sheet-mirror (graft *wm-application*)))
+         (xlib:set-input-focus display
+                               (clim-clx::window (sheet-mirror (graft *doors-port*)))
                                :parent)
 ;         (ensure-focus-frame)
          (return-from event-handler (maybe-funcall *wait-function*))))
@@ -287,5 +294,3 @@
       (stop-wm port))))
 
 
-(defmethod queue-event ((client application-frame) event)
-  (climi::event-queue-append (climi::frame-event-queue client) event))
