@@ -74,9 +74,9 @@
         (values (graft-width (graft *application-frame*))
                 (graft-height (graft *application-frame*)))))
 
-;; (define-doors-command (com-frame-focus :name t)
-;;     ((frame 'application-frame :gesture :select))
-;;   (setf (active-frame (port *application-frame*)) frame))
+(define-command (com-frame-focus :name t :command-table  doors-wm)
+    ((frame 'application-frame :gesture :select))
+  (setf (active-frame (port *application-frame*)) frame))
 
 (define-command (com-frame-toggle-fullscreen :name t :command-table doors-wm)
     ((frame 'application-frame :default (active-frame (port *application-frame*))))
@@ -154,7 +154,7 @@
 ;;             (with-interactor    'without-interactor)
 ;;             (without-interactor 'with-interactor)))))
 
-(define-doors-wm-command-with-grabbed-keystroke (com-quit :name t :keystroke (#\Q :super))
+(define-doors-wm-command-with-grabbed-keystroke (com-quit-doors :name t :keystroke (#\Q :super))
     ()
   (setf *wm-application* nil)
   (frame-exit *application-frame*))

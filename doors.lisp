@@ -288,7 +288,7 @@
 
 
 ;;; Command table
-(make-command-table 'doors-wm :errorp nil)
+(define-command-table doors-wm)
 
 ;; check for variable capture
 (defmacro define-doors-wm-command-with-grabbed-keystroke (name-and-options arguments &rest body)
@@ -309,6 +309,7 @@
 ;;;; Doors panel
 (define-application-frame doors-panel ()
   ()
+  (:command-table (doors-panel :inherit-from (doors-wm)))
   (:menu-bar nil)
   (:panes
    (info :application
@@ -324,6 +325,12 @@
    (without-interactor
        (vertically ()
          pointer-doc (horizontally () (:fill info) tray)))))
+
+(defmethod execute-frame-command ((frame doors-panel) command)
+                                        ;(call-next-method )
+  (if (command-present-in-command-table-p (car command) 'doors-wm)
+      (execute-frame-command *wm-application* command)
+      (call-next-method )))
 
 (defmethod find-pane-for-frame
     ((fm doors-wm) (frame doors-panel))
