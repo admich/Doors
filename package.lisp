@@ -55,7 +55,8 @@
    #:grab/ungrab-keystroke
    #:frame-short-name
    #:maximize-frame
-   #:fullscreen-frame))
+   #:fullscreen-frame)
+  (:local-nicknames (#:a #:alexandria)))
 
 (defpackage #:doors
   (:use #:clim-lisp #:clim #:clim-doors)
