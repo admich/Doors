@@ -124,7 +124,7 @@
                           (list (position (doors::current-desktop frame) (doors::desktops frame)))
                           :cardinal 32)
   (dolist (appf (managed-frames frame))
-    (if (eql (frame-properties appf :wm-desktop) (current-desktop frame))
+    (if (frame-visible-in-desktop appf (current-desktop frame))
         (setf (sheet-enabled-p (frame-top-level-sheet appf)) t)
         (setf (sheet-enabled-p (frame-top-level-sheet appf)) nil))))
 
@@ -336,11 +336,10 @@
     (sheet-adopt-child (clim-doors::find-frame-container fm frame) tls)
     tls))
 
-(defmethod run-frame-top-level :around ((frame doors-panel)
-                                        &key &allow-other-keys)
-  (unwind-protect
-       (call-next-method)
-    (doors-systray:kill-tray  (find-pane-named frame 'tray))))
+(defmethod default-frame-top-level :around ((frame doors-panel)
+                                            &key &allow-other-keys)
+  (setf (frame-properties frame :wm-desktop) :all-desktops)
+  (call-next-method))
 
 (defmethod run-frame-top-level :before ((frame doors-panel) &key &allow-other-keys)
   (queue-event (find-pane-named frame 'info) (make-instance 'info-line-event :sheet frame)))

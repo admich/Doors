@@ -9,13 +9,20 @@
              :initarg :active
              :accessor desktop-active-p)))
 
+(defun frame-visible-in-desktop (frame desktop)
+  (member (frame-properties frame :wm-desktop)
+          (list :all-desktops desktop)))
+
 (defmethod (setf frame-properties) :around (value (frame standard-application-frame) (property (eql :wm-desktop)))
   (declare (ignore property))
   (call-next-method)
-  (xlib:change-property (clim-doors::xwindow-for-properties frame) :_NET_WM_DESKTOP
-                          (list (position value (doors::desktops *wm-application*)))
-                          :cardinal 32)
-  (if (eql (current-desktop *wm-application*) value)
+  (let ((xvalue (if (eql value :all-desktops)
+                    #xFFFFFFFF
+                    (position value (doors::desktops *wm-application*)))))
+    (xlib:change-property (clim-doors::xwindow-for-properties frame) :_NET_WM_DESKTOP
+                          (list xvalue)
+                          :cardinal 32))
+  (if (frame-visible-in-desktop frame (current-desktop *wm-application*))
       (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
       (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil)))
 

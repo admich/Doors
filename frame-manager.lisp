@@ -173,7 +173,8 @@
 
 (defmethod enable-frame :around ((frame standard-application-frame))
   (call-next-method)
-  (setf (frame-properties frame :wm-desktop) (doors::current-desktop *wm-application*))
+  (unless (frame-properties frame :wm-desktop)
+    (setf (frame-properties frame :wm-desktop) (doors::current-desktop *wm-application*)))
   (set-xwindow-state (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) +normal-state+))
 
 (defmethod disable-frame :around ((frame application-frame))
