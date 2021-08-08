@@ -152,5 +152,5 @@
   (format pane " " )
   (multiple-value-bind (sec min h d m y) (decode-universal-time (get-universal-time))
     (format pane "~d/~2,'0d/~2,'0d ~2,'0d:~2,'0d:~2,'0d " y m d h min sec))
-  (info-desktop-list pane frame)
-  (info-frames-list pane frame))
+  (info-desktop-list pane)
+  (info-frames-list pane))

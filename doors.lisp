@@ -84,6 +84,10 @@
     :accessor climi::%frame-properties
     :initarg :properties
     :initform nil)
+   (panel
+    :accessor wm-panel
+    :initarg :panel
+    :initform nil)
    (top-level-lambda
     :initform 'default-frame-top-level
     :initarg :top-level-lambda
@@ -271,9 +275,20 @@
 
 ;;;; Frame manager
 
+(defmethod find-pane-for-frame
+    ((fm doors-wm) (frame standard-application-frame))
+  (let ((tls (make-pane-1 fm frame 'clim-doors::stack-top-level-sheet-pane
+               :name (frame-name frame)
+               :pretty-name (frame-pretty-name frame)
+               :icon (clime:frame-icon frame)
+               ;; sheet is enabled from enable-frame
+               :enabled-p nil)))
+    (sheet-adopt-child (clim-doors::find-frame-container fm frame) tls)
+    tls))
+
 
 ;;; Command table
-(make-command-table 'doors-wm)
+(make-command-table 'doors-wm :errorp nil)
 
 ;; check for variable capture
 (defmacro define-doors-wm-command-with-grabbed-keystroke (name-and-options arguments &rest body)
@@ -305,10 +320,21 @@
   (:layouts
    (with-interactor
        (vertically ()
-         (make-pane 'clime:box-adjuster-gadget)  interactor pointer-doc (horizontally () (:fill info) tray)))
+          interactor pointer-doc (horizontally () (:fill info) tray)))
    (without-interactor
        (vertically ()
          pointer-doc (horizontally () (:fill info) tray)))))
+
+(defmethod find-pane-for-frame
+    ((fm doors-wm) (frame doors-panel))
+  (let ((tls (make-pane-1 fm frame 'climi::standard-top-level-sheet-pane
+               :name (frame-name frame)
+               :pretty-name (frame-pretty-name frame)
+               :icon (clime:frame-icon frame)
+               ;; sheet is enabled from enable-frame
+               :enabled-p nil)))
+    (sheet-adopt-child (clim-doors::find-frame-container fm frame) tls)
+    tls))
 
 (defmethod run-frame-top-level :around ((frame doors-panel)
                                         &key &allow-other-keys)
@@ -328,11 +354,20 @@
                         (make-instance 'info-line-event :sheet frame)
                         1))
 
-
 
 ;;;; startup functions
 (defun start-tray (panel)
   (doors-systray:start-tray (find-pane-named panel 'tray)))
+
+(defun start-panel (&key new-process)
+  (assert *wm-application*)
+  (let* ((graft (find-graft))
+         (height 150)
+         (panel (make-application-frame 'doors-panel :top (- (graft-height graft) height) :height height :width (graft-width graft))))
+    (setf (wm-panel *wm-application*) panel)
+    (if new-process
+        (clim-sys:make-process #'(lambda () (run-frame-top-level panel)) :name "Doors panel")
+        (run-frame-top-level panel))))
 
 (defun doors (&key new-process replace-wm (port (find-port :server-path '(:doors))) (config-file *config-file*))
   (let* ((doorswm (make-instance 'doors-wm

@@ -134,10 +134,7 @@
                                        :atom 32)))
       (multiple-value-bind (w h x y) (climi::frame-geometry* frame)
         (declare (ignore w h))
-        (when (and x y)
-          (setf (xlib:drawable-x window) x
-                (xlib:drawable-y window) y))
-        (clim-clx::tell-window-manager-about-space-requirements top-level-sheet))
+        (move-sheet top-level-sheet (or x 0) (or y 0)))
       ;; :structure-notify events were not yet turned on, turn them
       ;; on now, so that we get informed about the windows position
       ;; (and possibly size), when the window gets maped.
@@ -157,17 +154,6 @@
 
 (defmethod find-frame-container ((fm doors-frame-manager) (frame application-frame))
   (graft (port fm)))
-
-(defmethod find-pane-for-frame
-    ((fm doors-frame-manager) (frame standard-application-frame))
-  (let ((tls (make-pane-1 fm frame 'stack-top-level-sheet-pane
-               :name (frame-name frame)
-               :pretty-name (frame-pretty-name frame)
-               :icon (clime:frame-icon frame)
-               ;; sheet is enabled from enable-frame
-               :enabled-p nil)))
-    (sheet-adopt-child (find-frame-container fm frame) tls)
-    tls))
 
 (defun save-frame-geometry (frame)
   "Save the actual geometry of the frame FRAME in the slots of the FRAME"

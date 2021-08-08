@@ -29,6 +29,6 @@
                      (:file "doors-tray")
                      (:file "desktop")
                      (:file "doors")
-                     (file "commands")
+                     (:file "commands")
                      (:file "info-line")))
 
