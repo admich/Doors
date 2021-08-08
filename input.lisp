@@ -46,7 +46,7 @@
 (defmethod distribute-event :around ((port doors-port) (event keyboard-event))
   (if (or (eq (graft port) (event-sheet event))
           (loop for x in *grabbed-keystrokes* thereis (event-matches-gesture-name-p event x)))
-      (climi::dispatch-event-copy *wm-application* event)
+      (when *wm-application* (climi::dispatch-event-copy *wm-application* event))
       (call-next-method)))
 
 (defmethod dispatch-event ((client doors-graft) event)
