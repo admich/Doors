@@ -47,10 +47,12 @@
     (clime:frame-display-pointer-documentation-string panel "")))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-button-press-event))
-  (let ((button (pointer-event-button event))
-        (outer (sheet-parent pane))
-        (graft  (graft pane))
-        (pointer (port-pointer (port pane))))
+  (let* ((button (pointer-event-button event))
+         (outer (sheet-parent pane))
+         (graft  (graft pane))
+         (pointer (port-pointer (port pane)))
+         (frame (pane-frame pane))
+         (port (port frame)))
     (cond
       ((eql button +pointer-left-button+)
        (multiple-value-bind (x y) (transform-position (sheet-delta-transformation outer graft) 0 0)
@@ -83,7 +85,8 @@
            (:pointer-button-release (x y)
                                     (a:when-let ((panel (doors::wm-panel *wm-application*)))
                                       (clime:frame-display-pointer-documentation-string panel ""))
-                                    (return-from track))))))))
+                                    (return-from track))))))
+        (setf (active-frame port) frame)))
 
 ;; stack container
 (defclass stack-top-level-sheet-pane (top-level-sheet-pane climi::vbox-pane)

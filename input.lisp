@@ -147,15 +147,9 @@
                           :sheet sheet
                           :modifier-state modifier-state :timestamp time))))
       ((:button-press :button-release)
-       ;; :button-press on a foreign-application change the focus on
-       ;; that application and the click is replay on the foreign
-       ;; application.
        (with-sheet-from-window (sheet)
-         (unless (eq *wm-application* (pane-frame sheet))
-           (setf (active-frame *doors-port*) (pane-frame sheet)))
          (when (typep sheet 'foreign-application-pane)
-           (xlib:allow-events display :replay-pointer time)
-           (return-from event-handler (maybe-funcall *wait-function*)))
+           (xlib:allow-events display :replay-pointer time))
          (let ((modifier-state (clim-xcommon:x-event-state-modifiers *doors-port* state))
                (button (clim-clx::decode-x-button-code code)))
            (if (member button '(#.+pointer-wheel-up+

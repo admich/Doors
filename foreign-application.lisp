@@ -28,6 +28,11 @@
 (defmethod handle-event ((pane foreign-application-pane) (event window-manager-configuration-request-event))
   (change-space-requirements pane))
 
+(defmethod handle-event ((pane foreign-application-pane) (event pointer-button-press-event))
+  (let* ((frame (pane-frame pane))
+         (port (port frame)))
+    (setf (active-frame port) frame)))
+
 (defmethod handle-event ((pane foreign-application-pane) (event window-destroy-event))
   (let ((frame (pane-frame pane)))
     (frame-exit frame)))
