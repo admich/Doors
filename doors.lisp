@@ -42,7 +42,7 @@
                     :accessor current-desktop)
    (command-table
     :initarg :command-table
-    :initform nil
+    :initform (find-command-table 'doors-wm)
     :accessor frame-command-table)
    (port :initarg :port
          :initform nil
@@ -67,6 +67,12 @@
    (reading-command-p
     :initform nil
     :accessor climi::frame-reading-command-p)
+   (disabled-commands
+    :accessor climi::disabled-commands
+    :accessor climi::frame-disabled-commands
+    :initarg :disabled-commands
+    :initform nil
+    :documentation "A list of command names that have been disabled in this frame.")
    (output-pane
     :initform nil
     :accessor frame-standard-output
@@ -84,7 +90,8 @@
     :reader climi::frame-top-level-lambda)))
 
 (defmethod initialize-instance :after ((obj doors-wm) &rest initargs)
-  (setf (slot-value obj 'current-desktop) (first (slot-value obj 'desktops))))
+  (setf (slot-value obj 'current-desktop) (first (slot-value obj 'desktops))
+        (slot-value obj 'main-graft) (graft (port obj))))
 
 (defun managed-frames (&optional (wm *wm-application*))
   (remove-if #'(lambda (x) (or (eq (frame-state x) :disabled)
@@ -214,11 +221,50 @@
            (*partial-command-parser* partial-command-parser))
       (restart-case
           (flet ((execute-command ()
-                   (alexandria:when-let ((command (read-frame-command frame :stream frame-query-io)))
+                   (alexandria:when-let ((command (read-frame-command frame)))
                      (execute-frame-command frame command))))
             (execute-command))
         (abort ()
           :report "Return to application command loop.")))))
+
+(defmethod command-enabled (command-name (frame doors-wm))
+  (and (command-accessible-in-command-table-p command-name
+                                              (frame-command-table frame))
+       (not (member command-name (climi::disabled-commands frame)))))
+
+(defmethod (setf command-enabled)
+    (enabled command-name (frame doors-wm))
+  (unless (command-accessible-in-command-table-p command-name
+                                                 (frame-command-table frame))
+    (return-from command-enabled nil))
+  (with-accessors ((disabled-commands climi::disabled-commands))
+      frame
+    (if enabled
+        (progn
+          (setf disabled-commands (delete command-name disabled-commands)))
+        (progn
+          (pushnew command-name disabled-commands)))
+    enabled))
+
+(defmethod read-frame-command ((frame doors-wm)
+                               &key (stream *standard-input*))
+  (declare (ignore stream))
+  (let ((command-table (frame-command-table frame))
+        (queue (climi::frame-event-queue frame)))
+    (do* ((event (climi::event-queue-read queue) (climi::event-queue-read queue))
+          (res (handle-event (event-sheet event) event) (handle-event (event-sheet event) event)))
+         ((and (consp res)
+               (symbolp (car res))
+               (command-accessible-in-command-table-p (car res) command-table))
+          res))))
+
+(defmethod handle-event ((client doors-wm) (event keyboard-event))
+  (when (eql (class-of event) (find-class 'key-press-event))
+    (let ((command (lookup-keystroke-command-item
+                    event (frame-command-table client))))
+      (when (consp command)
+        command))))
+
 
 ;;;; Frame manager
 
@@ -264,19 +310,22 @@
   (doors-systray:start-tray (find-pane-named panel 'tray)))
 
 ;;; Commands
-;; (defmacro define-doors-command-with-grabbed-keystroke (name-and-options arguments &rest body)
-;;   (let* ((name (if (listp name-and-options)
-;;                    (first name-and-options)
-;;                    name-and-options))
-;;          (options (if (listp name-and-options)
-;;                       (cdr name-and-options)
-;;                       nil))
-;;          (keystroke (getf options :keystroke)))
-;;     `(progn
-;;        (define-doors-command (,name ,@options)
-;;          ,arguments ,@body)
-;;        (when ',keystroke (pushnew ',keystroke *grabbed-keystrokes*))
-;;        (when *wm-application* (grab/ungrab-keystroke ',keystroke :port (port *wm-application*))))))
+(make-command-table 'doors-wm)
+
+;; check for variable capture
+(defmacro define-doors-wm-command-with-grabbed-keystroke (name-and-options arguments &rest body)
+  (let* ((name (if (listp name-and-options)
+                   (first name-and-options)
+                   name-and-options))
+         (options (if (listp name-and-options)
+                      (cdr name-and-options)
+                      nil))
+         (keystroke (getf options :keystroke)))
+    `(progn
+       (define-command (,name ,@options :command-table doors-wm)
+         ,arguments ,@body)
+       (when ',keystroke (pushnew ',keystroke *grabbed-keystrokes*))
+       (when *wm-application* (grab/ungrab-keystroke ',keystroke :port (port *wm-application*))))))
 
 
 ;; (defun find-foreign-application (win-class)
@@ -329,11 +378,11 @@
 ;;            (new-active (nth (mod (1- old-position) (length frames)) frames)))
 ;;       (setf (active-frame (port *application-frame*)) new-active))))
 
-;; (define-doors-command-with-grabbed-keystroke (com-banish-pointer :name t :keystroke (#\. :super))
-;;     ()
-;;   (setf (pointer-position (port-pointer (port *application-frame*)))
-;;         (values (graft-width (graft *application-frame*))
-;;                 (graft-height (graft *application-frame*)))))
+(define-doors-wm-command-with-grabbed-keystroke (com-banish-pointer :name t :keystroke (#\. :super))
+    ()
+  (setf (pointer-position (port-pointer (port *application-frame*)))
+        (values (graft-width (graft *application-frame*))
+                (graft-height (graft *application-frame*)))))
 
 ;; (define-doors-command (com-frame-focus :name t)
 ;;     ((frame 'application-frame :gesture :select))

@@ -97,7 +97,6 @@
                                             (port-lookup-foreign-sheet *doors-port* window)
                                             (graft *doors-port*)))))
                   ,@body)))
-    (log:error event-key)
     (case event-key
       ((:focus-out)
        ;;; check this 
