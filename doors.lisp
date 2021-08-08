@@ -112,6 +112,14 @@
   (unless (port-lookup-foreign-sheet (port client) (window-manager-map-request-event-window event))
     (make-foreign-application (window-manager-map-request-event-window event) :frame-manager (find-frame-manager :port (port client)))))
 
+(defmethod handle-event ((client doors-wm) (event climi::execute-command-event))
+  (log:error client *application-frame* )
+  (let ((command (climi::execute-command-event-command event))
+        (frame (climi::execute-command-event-frame event)))
+    (if (eql *application-frame* client)
+        command
+        (climi::event-queue-append (climi::frame-command-queue frame) command))))
+
 ;;; Desktops
 (defmethod number-of-desktops ((frame doors-wm))
   (length (desktops frame)))
@@ -262,6 +270,23 @@
                (command-accessible-in-command-table-p (car res) command-table))
           res))))
 
+(defmethod execute-frame-command ((frame doors-wm) command)
+  (check-type command cons)
+  (if (and (or (null (climi::frame-process frame))
+               (eq (climi::frame-process frame) (clim-sys:current-process)))
+           (not (climi::frame-reading-command-p frame)))
+      (let ((name (command-name command))
+            (args (command-arguments command)))
+        (restart-case (apply name args)
+          (try-again ()
+            :report (lambda (stream)
+                      (format stream "Try executing the command ~S again." name))
+            (execute-frame-command frame command))))
+      (dispatch-event frame (make-instance 'climi::execute-command-event
+                                           :sheet frame
+                                           :frame frame
+                                           :command command))))
+
 (defmethod handle-event ((client doors-wm) (event keyboard-event))
   (when (eql (class-of event) (find-class 'key-press-event))
     (let ((command (lookup-keystroke-command-item
@@ -330,7 +355,7 @@
                                         ;(call-next-method )
   (if (command-present-in-command-table-p (car command) 'doors-wm)
       (execute-frame-command *wm-application* command)
-      (call-next-method )))
+      (call-next-method)))
 
 (defmethod find-pane-for-frame
     ((fm doors-wm) (frame doors-panel))
