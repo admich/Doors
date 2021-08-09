@@ -17,7 +17,7 @@
 
 ;;;; icccm and ewmh related stuff
 
-(in-package :clim-doors)
+(in-package :doors)
 
 (defconstant +normal-state+ 1)
 (defconstant +iconic-state+ 3)
@@ -93,7 +93,7 @@
                         32))
 
 (defun get-utf8-property (window atom)
-  (when-let ((prop (xlib:get-property window atom
+  (a:when-let ((prop (xlib:get-property window atom
                                       :result-type '(vector (unsigned-byte 8)))))
     (babel:octets-to-string prop :encoding :utf-8)))
 
@@ -129,7 +129,7 @@
   (let ((root (find-root))
         (dpy (find-display)))
     (xlib:change-property root :_NET_CLIENT_LIST
-                          (mapcar #'(lambda (x) (xwindow-for-properties x)) (doors::managed-frames))
+                          (mapcar #'(lambda (x) (xwindow-for-properties x)) (managed-frames))
                           :window 32
                           :transform #'xlib:drawable-id
                           :mode :replace)))
@@ -137,7 +137,7 @@
   (let ((root (find-root))
         (dpy (find-display)))
     (xlib:change-property root :_NET_NUMBER_OF_DESKTOP
-                          (list (length (doors::desktops *wm-application*)))
+                          (list (length (desktops *wm-application*)))
                                :cardinal 32)
     (xlib:change-property root :_NET_DESKTOP_GEOMETRY
                           (list (xlib:drawable-width root) (xlib:drawable-height root))
@@ -146,5 +146,28 @@
                           (list 0 0)
                                :cardinal 32)
     (xlib:change-property root :_NET_CURRENT_DESKTOP
-                          (list (position (doors::current-desktop *wm-application*) (doors::desktops *wm-application*)))
+                          (list (position (current-desktop *wm-application*) (desktops *wm-application*)))
                           :cardinal 32)))
+
+(defgeneric xwindow-for-properties (frame)
+  (:documentation "The x window where set the properties")
+  (:method ((frame standard-application-frame))
+    (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))))
+  (:method ((frame foreign-application))
+    (clim-doors:foreign-xwindow frame)))
+
+(defmethod enable-frame :around ((frame standard-application-frame))
+  (call-next-method)
+  (unless (frame-properties frame :wm-desktop)
+    (setf (frame-properties frame :wm-desktop) (current-desktop *wm-application*)))
+  (set-xwindow-state (xwindow-for-properties frame)  +normal-state+))
+
+(defmethod disable-frame :around ((frame application-frame))
+  (xlib:delete-property (xwindow-for-properties frame) :WM_STATE)
+  (call-next-method))
+
+(defmethod shrink-frame :around ((frame application-frame))
+  (set-xwindow-state (xwindow-for-properties frame) +iconic-state+)
+  (call-next-method))
+
+

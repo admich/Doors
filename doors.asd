@@ -27,6 +27,10 @@
 		:serial t
 		:components ((:file "package")
                      (:file "doors-tray")
+                     (:file "freedesktop-standards")
+                     (:file "wm")
+                     (:file "presentations")
+                     (:file "containers" )
                      (:file "desktop")
                      (:file "doors")
                      (:file "commands")

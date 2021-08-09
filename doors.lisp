@@ -25,13 +25,10 @@
 ;; (swank/backend:install-debugger-globally #'clim-debugger:debugger)
 
 (defparameter *config-file* (merge-pathnames "doors/config.lisp" (uiop:xdg-config-home)))
-(defparameter *terminal* '("xterm" "xterm"))
-(defparameter *browser* '("firefox" "Navigator"))
-(defparameter *emacs* '("emacs" "emacs"))
 
 
 ;;;; Doors wm
-(defclass doors-wm (application-frame clim-doors::doors-frame-manager)
+(defclass doors-wm (application-frame doors-frame-manager)
   ((replace-wm :initarg :replace-wm
                :initform nil
                :reader doors-wm-replace-wm)
@@ -93,6 +90,9 @@
     :initarg :top-level-lambda
     :reader climi::frame-top-level-lambda)))
 
+(defun xroot (wm)
+  (clim-clx::window (sheet-mirror (graft wm))))
+
 (defmethod initialize-instance :after ((obj doors-wm) &rest initargs)
   (setf (slot-value obj 'current-desktop) (first (slot-value obj 'desktops))
         (slot-value obj 'main-graft) (graft (port obj))))
@@ -128,8 +128,8 @@
   (setf (desktop-active-p (current-desktop frame)) nil)
   (call-next-method )
   (setf (desktop-active-p (current-desktop frame)) t)
-  (xlib:change-property (clim-doors::find-root) :_NET_CURRENT_DESKTOP
-                          (list (position (doors::current-desktop frame) (doors::desktops frame)))
+  (xlib:change-property (xroot frame) :_NET_CURRENT_DESKTOP
+                          (list (position (current-desktop frame) (desktops frame)))
                           :cardinal 32)
   (dolist (appf (managed-frames frame))
     (if (frame-visible-in-desktop appf (current-desktop frame))
@@ -196,13 +196,13 @@
          (progn
            (push frame (slot-value port 'climi::frame-managers))
            (setf *wm-application* frame)
-           (start-wm port (doors-wm-replace-wm frame))
+           (start-wm frame)
            (alexandria:when-let ((config-file (config-file frame)))
              (load config-file))
            (with-frame-manager (frame)
              (call-next-method)))
       (when (wm-selection-manager port)
-        (stop-wm port))
+        (stop-wm frame))
       (alexandria:removef (slot-value port 'climi::frame-managers) frame)
       (setf *wm-application* nil))))
 
@@ -299,18 +299,107 @@
 
 
 ;;;; Frame manager
+(defmethod find-frame-container ((fm doors-frame-manager) (frame application-frame))
+  (graft (port fm)))
 
 (defmethod find-pane-for-frame
     ((fm doors-wm) (frame standard-application-frame))
-  (let ((tls (make-pane-1 fm frame 'clim-doors::stack-top-level-sheet-pane
+  (let ((tls (make-pane-1 fm frame 'stack-top-level-sheet-pane
                :name (frame-name frame)
                :pretty-name (frame-pretty-name frame)
                :icon (clime:frame-icon frame)
                ;; sheet is enabled from enable-frame
                :enabled-p nil)))
-    (sheet-adopt-child (clim-doors::find-frame-container fm frame) tls)
+    (sheet-adopt-child (find-frame-container fm frame) tls)
     tls))
 
+(defun save-frame-geometry (frame)
+  "Save the actual geometry of the frame FRAME in the slots of the FRAME"
+  (unless (or (frame-properties frame :fullscreen)
+              (frame-properties frame :maximized))
+    (let ((t-l-s (frame-top-level-sheet frame)))
+      (multiple-value-bind (x y) (transform-position (sheet-delta-transformation  t-l-s (sheet-parent t-l-s)) 0 0)
+        (multiple-value-bind (w h) (bounding-rectangle-size (sheet-region t-l-s))
+          (with-slots ((left climi::geometry-left)
+                       (top climi::geometry-top)
+                       (width climi::geometry-width)
+                       (height climi::geometry-height)) frame
+            (setf left (round x)
+                  top (round y)
+                  width (round w)
+                  height (round h))))))))
+
+(defgeneric maximize-frame (frame-manager frame)
+  (:documentation "Maximize the FRAME according to the policy of the FRAME-MANAGER")
+  (:method ((frame-manager standard-frame-manager) frame)
+    t)
+  (:method ((frame-manager doors-wm) frame)
+    (warn "maximize must be implemented")
+    ;; (unless (frame-properties frame :fullscreen)
+    ;;   (let* ((tls (frame-top-level-sheet frame))
+    ;;          (desktop-region (sheet-region (sheet-parent tls)))
+    ;;          (w (bounding-rectangle-width desktop-region))
+    ;;          (h (bounding-rectangle-height desktop-region)))
+    ;;     (if (frame-properties frame :maximized)
+    ;;         (progn
+    ;;           (with-slots ((left climi::geometry-left)
+    ;;                        (top climi::geometry-top)
+    ;;                        (width climi::geometry-width)
+    ;;                        (height climi::geometry-height)) frame
+    ;;             (move-and-resize-sheet tls left top width height)
+    ;;             (allocate-space tls width height))
+    ;;           (setf (frame-properties frame :maximized) nil))
+    ;;         (progn
+    ;;           (save-frame-geometry frame)
+    ;;           (move-and-resize-sheet tls 0 0 w h)
+    ;;           (allocate-space tls w h)
+    ;;           (setf (frame-properties frame :maximized) t)))))
+    ))
+
+(defgeneric fullscreen-frame (frame-manager frame)
+  (:documentation "Fullscreen the FRAME according to the policy of the FRAME-MANAGER")
+  (:method ((frame-manager standard-frame-manager) frame)
+    t)
+  (:method ((frame-manager doors-wm) frame)
+    (let* ((tls (frame-top-level-sheet frame))
+          (panes (frame-panes frame))
+          (parent (sheet-parent tls))
+          (graft (graft frame)))
+      (if (frame-properties frame :fullscreen)
+          (progn
+            (add-ornaments tls)
+            (with-slots ((left climi::geometry-left)
+                         (top climi::geometry-top)
+                         (width climi::geometry-width)
+                         (height climi::geometry-height)) frame
+              (move-and-resize-sheet tls left top width height)
+              (allocate-space tls width height))
+            (setf (frame-properties frame :fullscreen) nil))
+          (progn
+            (save-frame-geometry frame)
+            (remove-ornaments tls)
+            (move-and-resize-sheet tls 0 0 (graft-width graft) (graft-height graft))
+            (allocate-space tls (graft-width graft) (graft-height graft))
+            (setf (frame-properties frame :maximized) nil)
+            (setf (frame-properties frame :fullscreen) t))))))
+
+(defmethod note-frame-enabled :after ((fm doors-wm) (frame standard-application-frame))
+  (declare (ignore fm))
+  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32)
+  (ewmh-update-client-list))
+
+(defmethod note-frame-disabled :after ((fm doors-wm) (frame standard-application-frame))
+  (declare (ignore fm))
+  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +withdrawn-state+) :WM_STATE 32)
+  (ewmh-update-client-list))
+
+(defmethod note-frame-iconified :after ((fm doors-wm) (frame standard-application-frame))
+  (declare (ignore fm))
+  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +iconic-state+) :WM_STATE 32))
+
+(defmethod note-frame-deiconified :after ((fm doors-wm) (frame standard-application-frame))
+  (declare (ignore fm))
+ (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32))
 
 ;;; Command table
 (define-command-table doors-wm)
@@ -365,7 +454,7 @@
                :icon (clime:frame-icon frame)
                ;; sheet is enabled from enable-frame
                :enabled-p nil)))
-    (sheet-adopt-child (clim-doors::find-frame-container fm frame) tls)
+    (sheet-adopt-child (find-frame-container fm frame) tls)
     tls))
 
 (defmethod default-frame-top-level :around ((frame doors-panel)

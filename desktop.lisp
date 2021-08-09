@@ -18,8 +18,8 @@
   (call-next-method)
   (let ((xvalue (if (eql value :all-desktops)
                     #xFFFFFFFF
-                    (position value (doors::desktops *wm-application*)))))
-    (xlib:change-property (clim-doors::xwindow-for-properties frame) :_NET_WM_DESKTOP
+                    (position value (desktops *wm-application*)))))
+    (xlib:change-property (xwindow-for-properties frame) :_NET_WM_DESKTOP
                           (list xvalue)
                           :cardinal 32))
   (if (frame-visible-in-desktop frame (current-desktop *wm-application*))

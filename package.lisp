@@ -35,7 +35,6 @@
   (:export
    #:*wm-application*
    #:active-frame
-   #:save-frame-geometry
    #:window-manager-request-event
    #:window-manager-configuration-request-event
    #:window-manager-configuration-request-event-window
@@ -47,18 +46,19 @@
    #:window-manager-map-request-event-window
    #:grant-configure-request
    #:port-lookup-foreign-sheet
+   #:foreign-application
+   #:foreign-xwindow
    #:make-foreign-application
-   #:start-wm
-   #:stop-wm
+   #:foreign-application-unmanage-xwindow
    #:wm-selection-manager
    #:*grabbed-keystrokes*
    #:grab/ungrab-keystroke
-   #:frame-short-name
-   #:maximize-frame
-   #:fullscreen-frame)
+   #:update-server-timestamp
+   #:doors-frame-manager)
   (:local-nicknames (#:a #:alexandria)))
 
 (defpackage #:doors
   (:use #:clim-lisp #:clim #:clim-doors)
-  (:export #:doors))
+  (:export #:doors)
+  (:local-nicknames (#:a #:alexandria)))
 

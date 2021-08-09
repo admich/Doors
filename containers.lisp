@@ -16,8 +16,7 @@
 ;;;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 ;;;; USA
 
-(in-package :clim-doors)
-(defparameter *wm-application* '())
+(in-package :doors)
 
 ;;;; wm-ornaments-pane
 (defparameter *ornaments-height* 15)
@@ -39,11 +38,11 @@
       (draw-text* pane title 5 y2 :align-y :bottom))))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-enter-event))
-  (a:when-let ((panel (doors::wm-panel *wm-application*)))
+  (a:when-let ((panel (wm-panel *wm-application*)))
     (clime:frame-display-pointer-documentation-string panel "L: Move  R: Resize")))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-exit-event))
-  (a:when-let ((panel (doors::wm-panel *wm-application*)))
+  (a:when-let ((panel (wm-panel *wm-application*)))
     (clime:frame-display-pointer-documentation-string panel "")))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-button-press-event))
@@ -57,7 +56,7 @@
       ((eql button +pointer-left-button+)
        (multiple-value-bind (x y) (transform-position (sheet-delta-transformation outer graft) 0 0)
          (setf (pointer-position pointer) (values x y)))
-       (a:when-let ((panel (doors::wm-panel *wm-application*)))
+       (a:when-let ((panel (wm-panel *wm-application*)))
          (clime:frame-display-pointer-documentation-string panel "Drag to move"))
        (block track
          (tracking-pointer (outer :multiple-window nil)
@@ -69,11 +68,11 @@
                                     (multiple-value-bind (x y)
                                         (transform-position (sheet-delta-transformation (event-sheet event) (sheet-parent outer)) x y)
                                       (move-sheet outer x y))
-                                    (a:when-let ((panel (doors::wm-panel *wm-application*)))
+                                    (a:when-let ((panel (wm-panel *wm-application*)))
                                       (clime:frame-display-pointer-documentation-string panel ""))
         		                    (return-from track)))))
       ((eql button +pointer-right-button+)
-       (a:when-let ((panel (doors::wm-panel *wm-application*)))
+       (a:when-let ((panel (wm-panel *wm-application*)))
          (clime:frame-display-pointer-documentation-string panel "Drag to resize"))
        (multiple-value-bind (w h) (bounding-rectangle-size outer)
          (multiple-value-bind (x y) (transform-position (sheet-delta-transformation outer graft) w h)
@@ -83,13 +82,13 @@
            (:pointer-motion (x y)
                             (resize-sheet outer x y))
            (:pointer-button-release (x y)
-                                    (a:when-let ((panel (doors::wm-panel *wm-application*)))
+                                    (a:when-let ((panel (wm-panel *wm-application*)))
                                       (clime:frame-display-pointer-documentation-string panel ""))
                                     (return-from track))))))
         (setf (active-frame port) frame)))
 
 ;; stack container
-(defclass stack-top-level-sheet-pane (top-level-sheet-pane climi::vbox-pane)
+(defclass stack-top-level-sheet-pane (climi::top-level-sheet-pane climi::vbox-pane)
   ((ornaments :accessor wm-ornaments))
   (:documentation "A frame container with ornaments for stack frame manager"))
 

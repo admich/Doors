@@ -155,19 +155,5 @@
     (port-unregister-foreign-application (port frame) pane window)
     (setf (foreign-xwindow frame) nil)))
 
-(defmethod enable-frame :around ((frame foreign-application))
-  (call-next-method)
-  (xlib:delete-property (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) :WM_STATE)
-  (set-xwindow-state (foreign-xwindow frame) +normal-state+))
 
-(defmethod disable-frame :around ((frame foreign-application))
-  (set-xwindow-state (foreign-xwindow frame) +withdrawn-state+)
-  (call-next-method))
 
-(defmethod shrink-frame :around ((frame foreign-application))
-  (xlib:delete-property (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))) :WM_STATE)
-  (set-xwindow-state (foreign-xwindow frame) +iconic-state+)
-  (call-next-method))
-
-(defmethod xwindow-for-properties ((frame foreign-application))
-  (foreign-xwindow frame))

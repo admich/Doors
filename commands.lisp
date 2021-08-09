@@ -18,11 +18,15 @@
 
 (in-package :doors)
 
+(defparameter *terminal* '("xterm" "xterm"))
+(defparameter *browser* '("firefox" "Navigator"))
+(defparameter *emacs* '("emacs" "emacs"))
+
 (defun find-foreign-application (win-class)
-  (let ((table (slot-value (port *wm-application*) 'clim-doors::foreign-mirror->sheet)))
-    (loop for pane being the hash-value of table
-          when (string= win-class (xlib:get-wm-class (clim-doors::foreign-xwindow pane)))
-            collect (pane-frame pane))))
+  (loop for frame in (managed-frames)
+        when (and (typep frame 'clim-doors:foreign-application)
+                  (string= win-class (xlib:get-wm-class (clim-doors:foreign-xwindow frame))))
+          collect frame))
 
 (defmacro define-run-or-raise (name sh-command win-class keystroke)
   `(define-doors-wm-command-with-grabbed-keystroke (,name :name t :keystroke ,keystroke)

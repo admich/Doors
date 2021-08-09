@@ -76,12 +76,6 @@
         (otherwise
          (prog1 t (distribute-event port event)))))))
 
-;; (defun ensure-focus-frame ()
-;;   (if (car (doors::managed-frames *wm-application*))
-;;       (setf (doors::active-frame (port *wm-application*))
-;;             (car (doors::managed-frames *wm-application*)))
-;;       (doors::com-goto-wm-interactor)))
-
 (defun event-handler (&key display event-window window kind event-key code state mode time
                         type width height x y root-x root-y
                         data override-redirect-p send-event-p
