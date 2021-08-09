@@ -1,4 +1,4 @@
-;;;; Copyright (C) 2020  Andrea De Michele
+;;;; Copyright (C) 2020, 2021  Andrea De Michele
 ;;;;
 ;;;; This library is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -48,48 +48,6 @@
   (:method (port frame-manager &rest options)
     (declare (ignore options))
     (eql port (port frame-manager))))
-
-;; ;; compared to stanard mccclim method here (frame-panes frame) can be
-;; ;; not a direct child of the top-level-sheet but some panes could be
-;; ;; in the middle (e.g. layout container for wm ornament)
-;; (defmethod generate-panes :before (fm  (frame application-frame))
-;;   (declare (ignore fm))
-;;   (when (and (frame-panes frame) (sheet-parent (frame-panes frame)))
-;;     (sheet-disown-child (sheet-parent (frame-panes frame))(frame-panes frame)))
-;;   (loop for (nil . pane) in (frame-panes-for-layout frame)
-;;         for parent = (sheet-parent pane)
-;;         if  parent
-;;      do (sheet-disown-child parent pane)))
-
-;;; compared to standard mccclim method here I ensure that the
-;;; top-level-sheet is an ancestor of frame-pane. This is done by
-;;; find-pane-for-frame.
-(defmethod (setf frame-current-layout) :around (name (frame application-frame))  
-  (unless (eql name (frame-current-layout frame))
-    (call-next-method)
-    (alexandria:when-let ((fm (frame-manager frame)))
-      (generate-panes fm frame)
-      (setf (slot-value frame 'climi::top-level-sheet)
-            (find-pane-for-frame (frame-manager frame) frame))
-       (layout-frame frame)
-       (signal 'frame-layout-changed :frame frame))))
-
-;;; mcclim version
-;; (defmethod (setf frame-current-layout) :around (name (frame application-frame))
-;;   (unless (eql name (frame-current-layout frame))
-;;     (call-next-method)
-;;     (when-let ((fm (frame-manager frame)))
-;;       (if-let ((tls (and (frame-resize-frame frame)
-;;                          (frame-top-level-sheet frame))))
-;;         (multiple-value-bind (width height)
-;;             (bounding-rectangle-size tls)
-;;           (generate-panes fm frame)
-;;           (layout-frame frame width height))
-;;         (progn
-;;           (generate-panes fm frame)
-;;           (layout-frame frame)))
-;;       (signal 'frame-layout-changed :frame frame))))
-
 
 ;;; compared to mcclim when the port is the WM we don't need to do nothing here
 (defmethod handle-event ((sheet top-level-sheet-pane)
@@ -142,23 +100,11 @@
                ;; sheet is enabled from enable-frame
                :enabled-p nil))
 
-(defun disown-frame-panes (fm frame)
-  (declare (ignore fm))
-  (when-let ((panes (frame-panes frame)))
-    (let ((top-level-sheet (frame-top-level-sheet frame)))
-      (when (sheet-ancestor-p panes top-level-sheet)
-        (sheet-disown-child top-level-sheet panes))))
-  (loop for (nil . pane) in (frame-panes-for-layout frame)
-        for parent = (sheet-parent pane)
-        when parent
-          do (sheet-disown-child parent pane)))
-
 ;; a frame must be disabled before the disown in this way note-frame-disabled is called.
 (defmethod disown-frame :before
     ((fm headless-frame-manager) (frame application-frame))
   (alexandria:removef (slot-value fm 'frames) frame)
   (disable-frame frame))
-
 ;;; some keysym
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)

@@ -34,5 +34,6 @@
                      (:file "desktop")
                      (:file "doors")
                      (:file "commands")
+                     (:file "panel")
                      (:file "info-line")))
 

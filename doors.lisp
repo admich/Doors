@@ -113,7 +113,6 @@
     (make-foreign-application (window-manager-map-request-event-window event) :frame-manager (find-frame-manager :port (port client)))))
 
 (defmethod handle-event ((client doors-wm) (event climi::execute-command-event))
-  (log:error client *application-frame* )
   (let ((command (climi::execute-command-event-command event))
         (frame (climi::execute-command-event-frame event)))
     (if (eql *application-frame* client)
@@ -422,75 +421,7 @@
        (when *wm-application* (grab/ungrab-keystroke ',keystroke :port (port *wm-application*))))))
 
 
-;;;; Doors panel
-(define-application-frame doors-panel ()
-  ((tray :initarg :tray
-         :reader panel-tray
-         :initform nil))
-  (:command-table (doors-panel :inherit-from (doors-wm)))
-  (:menu-bar nil)
-  (:panes
-   (info :application
-         :incremental-redisplay t
-         :display-function 'display-info :max-height 15 :scroll-bars nil)
-   (interactor :interactor :height 24)
-   (pointer-doc :pointer-documentation :scroll-bars nil)
-   (tray (make-pane 'doors-systray:tray-pane :background +white+)))
-  (:layouts
-   (with-interactor
-       (vertically ()
-          interactor pointer-doc (horizontally () (:fill info) tray)))
-   (without-interactor
-       (vertically ()
-         pointer-doc (horizontally () (:fill info) tray)))))
-
-(defmethod execute-frame-command ((frame doors-panel) command)
-                                        ;(call-next-method )
-  (if (command-present-in-command-table-p (car command) 'doors-wm)
-      (execute-frame-command *wm-application* command)
-      (call-next-method)))
-
-(defmethod find-pane-for-frame
-    ((fm doors-wm) (frame doors-panel))
-  (let ((tls (make-pane-1 fm frame 'climi::standard-top-level-sheet-pane
-               :name (frame-name frame)
-               :pretty-name (frame-pretty-name frame)
-               :icon (clime:frame-icon frame)
-               ;; sheet is enabled from enable-frame
-               :enabled-p nil)))
-    (sheet-adopt-child (find-frame-container fm frame) tls)
-    tls))
-
-(defmethod default-frame-top-level :around ((frame doors-panel)
-                                            &key &allow-other-keys)
-  (setf (frame-properties frame :wm-desktop) :all-desktops)
-  (call-next-method))
-
-(defmethod run-frame-top-level :before ((frame doors-panel) &key &allow-other-keys)
-  (queue-event (find-pane-named frame 'info) (make-instance 'info-line-event :sheet frame))
-  (when (panel-tray frame)
-    (doors-systray:start-tray (find-pane-named frame 'tray))))
-
-(defclass info-line-event (window-manager-event) ())
-
-(defmethod handle-event ((frame doors-panel) (event info-line-event))
-  (with-application-frame (frame)
-    (redisplay-frame-pane frame 'info))
-  (clime:schedule-event (find-pane-named frame 'info)
-                        (make-instance 'info-line-event :sheet frame)
-                        1))
-
-
 ;;;; startup functions
-(defun start-panel (&key new-process tray)
-  (assert *wm-application*)
-  (let* ((graft (find-graft))
-         (height 150)
-         (panel (make-application-frame 'doors-panel :tray tray :top (- (graft-height graft) height) :height height :width (graft-width graft))))
-    (setf (wm-panel *wm-application*) panel)
-    (if new-process
-        (clim-sys:make-process #'(lambda () (run-frame-top-level panel)) :name "Doors panel")
-        (run-frame-top-level panel))))
 
 (defun doors (&key new-process replace-wm (port (find-port :server-path '(:doors))) (config-file *config-file*))
   (let* ((doorswm (make-instance 'doors-wm

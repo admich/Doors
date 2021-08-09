@@ -99,64 +99,9 @@
     (when (member frame (managed-frames *application-frame*))
       (maximize-frame (frame-manager frame) frame))))
 
-;; (define-presentation-to-command-translator
-;;     com-frame-toggle-fullscreen
-;;     (application-frame com-frame-toggle-fullscreen doors
-;;      :gesture nil
-;;      :documentation "Toggle Fullscreen")
-;;     (object)
-;;     (list object))
-
 (define-doors-wm-command-with-grabbed-keystroke (com-dmenu :keystroke (#\Return :super))
     ()
   (uiop:run-program "dmenu_run -i -b -p \"run command:\""))
-
-;; (defun programs-in-path ()
-;;   "Return a list of all programs in PATH env variable"
-;;   (loop for dir  in (ppcre:split ":" (uiop:getenv "PATH"))
-;;         appending (map 'list #'pathname-name (uiop:directory-files (uiop:ensure-directory-pathname dir)))))
-
-;; (define-presentation-type program-name () :inherit-from 'string)
-
-;; (define-presentation-method presentation-typep (object (type program-name))
-;;   (and nil (stringp object)
-;;         (find object  (programs-in-path)
-;;               :test #'string=)))
-
-;; ;; define-presentation-method presentation-subtypep ?
-
-;; (define-presentation-method accept ((type string) stream (view textual-view)
-;;                                     &key)
-;;   (let* ((suggestions (programs-in-path))
-;;          (obj (completing-from-suggestions (stream)
-;;                 (dolist (x suggestions)
-;;                  (suggest x x)))))
-;;       obj))
-
-;; (define-doors-command (com-run :name t)
-;;     ((command 'program-name :prompt "Command")
-;;      (args '(or null (sequence string)) :prompt "Arguments" :default '()))
-;;   (format (frame-query-io *application-frame*) "~s" (cons command args))
-;;   (uiop:launch-program (cons command args)))
-
-;; (define-doors-command-with-grabbed-keystroke (com-bury-all :name t :keystroke (#\_ :super))
-;;     ()
-;;   (let* ((frames (managed-frames)))
-;;     (map nil #'bury-frame frames)))
-
-;; (define-doors-command-with-grabbed-keystroke (com-goto-wm-interactor :keystroke (#\i :super))
-;;     ()
-;;   (setf (frame-current-layout *wm-application*) 'with-interactor)
-;;   (stream-set-input-focus (frame-standard-input *wm-application*)))
-
-;; (define-doors-command-with-grabbed-keystroke (com-toggle-interactor
-;;                                              :keystroke     (#\I :super))
-;;     ()
-;;   (let ((frame *application-frame*))
-;;     (setf (frame-current-layout frame)
-;;           (case (frame-current-layout frame)
-;;             (with-interactor    'without-interactor)
-;;             (without-interactor 'with-interactor)))))
 
 (define-doors-wm-command-with-grabbed-keystroke (com-quit-doors :name t :keystroke (#\Q :super))
     ()
@@ -174,7 +119,7 @@
     (when (member frame (managed-frames))
       (com-frame-kill frame))))
 
-;; ;;;; MULTIMEDIA
+;;;; MULTIMEDIA
 
 (define-doors-wm-command-with-grabbed-keystroke (com-audio-mute :name t :keystroke (:xf86-audio-mute)) 
     ()
@@ -194,6 +139,7 @@
          (state (cl-ppcre:scan-to-strings "\\[([0-9]*%)\\]" out)))
     (format (frame-query-io *application-frame*) "Audio Volume: ~a" state)))
 
+;;;; Desktops
 (define-command (com-set-current-desktop :name t :command-table doors-wm)
     ((desktop 'desktop :prompt "Select a desktop" :gesture :select))
   (setf (current-desktop *application-frame*) desktop))
@@ -224,6 +170,3 @@
     (setf (frame-properties (active-frame  (port *application-frame*)) :wm-desktop)
           desktop)
     (setf (current-desktop *application-frame*) desktop)))
-
-
-
