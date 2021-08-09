@@ -422,7 +422,9 @@
 
 ;;;; Doors panel
 (define-application-frame doors-panel ()
-  ()
+  ((tray :initarg :tray
+         :reader panel-tray
+         :initform nil))
   (:command-table (doors-panel :inherit-from (doors-wm)))
   (:menu-bar nil)
   (:panes
@@ -463,7 +465,9 @@
   (call-next-method))
 
 (defmethod run-frame-top-level :before ((frame doors-panel) &key &allow-other-keys)
-  (queue-event (find-pane-named frame 'info) (make-instance 'info-line-event :sheet frame)))
+  (queue-event (find-pane-named frame 'info) (make-instance 'info-line-event :sheet frame))
+  (when (panel-tray frame)
+    (doors-systray:start-tray (find-pane-named frame 'tray))))
 
 (defclass info-line-event (window-manager-event) ())
 
@@ -476,14 +480,11 @@
 
 
 ;;;; startup functions
-(defun start-tray (panel)
-  (doors-systray:start-tray (find-pane-named panel 'tray)))
-
-(defun start-panel (&key new-process)
+(defun start-panel (&key new-process tray)
   (assert *wm-application*)
   (let* ((graft (find-graft))
          (height 150)
-         (panel (make-application-frame 'doors-panel :top (- (graft-height graft) height) :height height :width (graft-width graft))))
+         (panel (make-application-frame 'doors-panel :tray tray :top (- (graft-height graft) height) :height height :width (graft-width graft))))
     (setf (wm-panel *wm-application*) panel)
     (if new-process
         (clim-sys:make-process #'(lambda () (run-frame-top-level panel)) :name "Doors panel")

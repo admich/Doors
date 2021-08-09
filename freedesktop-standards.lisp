@@ -162,11 +162,11 @@
     (setf (frame-properties frame :wm-desktop) (current-desktop *wm-application*)))
   (set-xwindow-state (xwindow-for-properties frame)  +normal-state+))
 
-(defmethod disable-frame :around ((frame application-frame))
+(defmethod disable-frame :around ((frame standard-application-frame))
   (xlib:delete-property (xwindow-for-properties frame) :WM_STATE)
   (call-next-method))
 
-(defmethod shrink-frame :around ((frame application-frame))
+(defmethod shrink-frame :around ((frame standard-application-frame))
   (set-xwindow-state (xwindow-for-properties frame) +iconic-state+)
   (call-next-method))
 
