@@ -30,6 +30,7 @@
   '(;;; Root Window Properties (and Related Messages)
     :_NET_SUPPORTED
     :_NET_CLIENT_LIST
+    :_NET_CLIENT_LIST_STACKING
     :_NET_NUMBER_OF_DESKTOPS
     :_NET_DESKTOP_GEOMETRY
     :_NET_DESKTOP_VIEWPORT
@@ -125,14 +126,30 @@
                           (mapcar #'(lambda (x) (xlib:find-atom dpy x)) +ewmh-atoms+)
                                :atom 32)))
 
+(defun ewmh-update-client-list-stacking ()
+  (let* ((root (find-root))
+         (dpy (find-display))
+         (wins (loop for win in (xlib:query-tree root)
+                     for sheet = (getf (xlib:window-plist win) 'sheet)
+                     for frame = (and sheet (pane-frame sheet))
+                     when (member frame (managed-frames))
+                       collect (xwindow-for-properties frame))))
+    (xlib:change-property root :_NET_CLIENT_LIST_STACKING wins
+                               :window 32
+                               :transform #'xlib:drawable-id
+                               :mode :replace)))
+
 (defun ewmh-update-client-list ()
   (let ((root (find-root))
         (dpy (find-display)))
     (xlib:change-property root :_NET_CLIENT_LIST
-                          (mapcar #'(lambda (x) (xwindow-for-properties x)) (managed-frames))
-                          :window 32
-                          :transform #'xlib:drawable-id
-                          :mode :replace)))
+                          (mapcar #'(lambda (x) (xwindow-for-properties x))
+                                  (reverse (managed-frames)))
+                               :window 32
+                               :transform #'xlib:drawable-id
+                               :mode :replace))
+  (ewmh-update-client-list-stacking))
+
 (defun ewmh-update-desktop ()
   (let ((root (find-root))
         (dpy (find-display)))

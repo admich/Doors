@@ -34,6 +34,7 @@
                 #:pointer-ungrab-leave-event)
   (:export
    #:*wm-application*
+   #:doors-graft
    #:active-frame
    #:window-manager-request-event
    #:window-manager-configuration-request-event

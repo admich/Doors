@@ -400,7 +400,17 @@
 
 (defmethod note-frame-deiconified :after ((fm doors-wm) (frame standard-application-frame))
   (declare (ignore fm))
- (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32))
+  (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +normal-state+) :WM_STATE 32))
+
+(defmethod raise-sheet :after ((sheet climi::top-level-sheet-pane))
+  (ewmh-update-client-list-stacking))
+
+(defmethod bury-sheet :after ((sheet climi::top-level-sheet-pane))
+  (ewmh-update-client-list-stacking))
+
+(defmethod reorder-sheets :after ((sheet doors-graft) new-ordering)
+  (ewmh-update-client-list-stacking))
+
 
 ;;; Command table
 (define-command-table doors-wm)
