@@ -145,3 +145,11 @@
     (if new-process
         (clim-sys:make-process #'(lambda () (run-frame-top-level panel)) :name "Doors panel")
         (run-frame-top-level panel))))
+
+(define-doors-panel-command(com-update-info-line :name t)
+    ()
+  (redisplay-frame-pane *application-frame* 'info)
+  (clime:schedule-event (find-pane-named *application-frame* 'info)
+                        (make-instance 'info-line-event :sheet *application-frame*)
+                        1))
+

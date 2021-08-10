@@ -82,18 +82,6 @@
     (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
                            window :parent)))
 
-(defmethod frame-pretty-name ((frame foreign-application))
-  (let ((window (foreign-xwindow frame)))
-    (or (ignore-errors (net-wm-name window))
-        (ignore-errors (xlib:wm-name window))
-        "NoWin")))
-
-(defmethod frame-short-name ((frame foreign-application))
-  (let ((window (foreign-xwindow frame)))
-    (or (ignore-errors (net-wm-icon-name window))
-        (ignore-errors (xlib:wm-icon-name window))
-        (frame-pretty-name frame))))
-
 (defmethod foreign-application-frame-top-level ((frame application-frame))
   (setf (active-frame (port frame)) frame)
   (clim-extensions:simple-event-loop))

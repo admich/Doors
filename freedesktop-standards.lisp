@@ -188,3 +188,15 @@
   (call-next-method))
 
 
+(defmethod frame-pretty-name ((frame foreign-application))
+  (let ((window (foreign-xwindow frame)))
+    (or (ignore-errors (net-wm-name window))
+        (ignore-errors (xlib:wm-name window))
+        "NoWin")))
+
+(defmethod frame-short-name ((frame foreign-application))
+  (let ((window (foreign-xwindow frame)))
+    (or (ignore-errors (net-wm-icon-name window))
+        (ignore-errors (xlib:wm-icon-name window))
+        (frame-pretty-name frame))))
+
