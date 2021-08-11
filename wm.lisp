@@ -100,4 +100,5 @@
              (slot-value port 'foreign-mirror->sheet))
     (xlib:destroy-window (wm-selection-manager port))
     (setf (wm-selection-manager port) nil)
+    (ewmh-stop)
     (setf (xlib:window-event-mask (xroot wm)) (xlib:make-event-mask))))

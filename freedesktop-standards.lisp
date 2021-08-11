@@ -38,7 +38,7 @@
     ;; :_NET_DESKTOP_NAMES
     ;; :_NET_ACTIVE_WINDOW
     ;; :_NET_WORKAREA
-    ;; :_NET_SUPPORTING_WM_CHECK
+    :_NET_SUPPORTING_WM_CHECK
     ;; :_NET_VIRTUAL_ROOTS
     ;; :_NET_DESKTOP_LAYOUT
     ;; :_NET_SHOWING_DESKTOP
@@ -124,7 +124,26 @@
         (dpy (find-display)))
     (xlib:change-property root :_NET_SUPPORTED
                           (mapcar #'(lambda (x) (xlib:find-atom dpy x)) +ewmh-atoms+)
-                               :atom 32)))
+                               :atom 32)
+    (let ((supporting-window (xlib:create-window
+                      :parent root
+                      :x 0 :y 1 :width 1 :height 1)))
+      (setf (xlib:wm-name supporting-window) "doors")
+      (xlib:change-property supporting-window :_NET_WM_NAME
+                          "doors" :string 32
+                          :transform #'xlib:char->card8)
+      (xlib:change-property root :_NET_SUPPORTING_WM_CHECK
+                            (list supporting-window) :window 32
+                            :transform #'xlib:drawable-id)
+      (xlib:change-property supporting-window :_NET_SUPPORTING_WM_CHECK
+                          (list supporting-window) :window 32
+                                      :transform #'xlib:drawable-id)
+      (setf (net-supporting-wm-check *wm-application*) supporting-window))))
+
+(defun ewmh-stop ()
+  (let ((supporting-window (net-supporting-wm-check *wm-application*)))
+    (setf (net-supporting-wm-check *wm-application*) nil)
+    (xlib:destroy-window supporting-window)))
 
 (defun ewmh-update-client-list-stacking ()
   (let* ((root (find-root))

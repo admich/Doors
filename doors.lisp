@@ -32,6 +32,8 @@
   ((replace-wm :initarg :replace-wm
                :initform nil
                :reader doors-wm-replace-wm)
+   (net-supporting-wm-check :initform nil
+                            :accessor net-supporting-wm-check)
    (desktops :initarg :desktops
              :initform (list (make-instance 'desktop :number 0 :active t) (make-instance 'desktop :number 1))
              :accessor desktops)
