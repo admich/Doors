@@ -107,6 +107,9 @@
 (defmethod dispatch-event ((client doors-wm) event)
   (queue-event client event))
 
+(defmethod handle-event ((client doors-wm) (event t))
+  (warn "The event ~a is not processed by DOORS WM" event))
+
 (defmethod handle-event ((client doors-wm) (event window-manager-configuration-request-event))
   (grant-configure-request event))
 
@@ -120,6 +123,16 @@
     (if (eql *application-frame* client)
         command
         (climi::event-queue-append (climi::frame-command-queue frame) command))))
+
+(defmethod handle-event ((client doors-wm) (event window-manager-number-of-desktops-request-event))
+  (let ((n (window-manager-number-of-desktops-request-event-number event)))
+    (assert (and (integerp n) (> n 0) (< n 21)))
+    (when (> n (length (desktops client)))
+      (do () ((>= (length (desktops client)) n))
+        (com-create-desktop)))
+    (when (< n (length (desktops client)))
+      (do () ((<= (length (desktops client)) n))
+        (com-remove-desktop (a:lastcar (desktops client)))))))
 
 ;;; Desktops
 (defmethod number-of-desktops ((frame doors-wm))

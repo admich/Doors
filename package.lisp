@@ -55,7 +55,9 @@
    #:*grabbed-keystrokes*
    #:grab/ungrab-keystroke
    #:update-server-timestamp
-   #:doors-frame-manager)
+   #:doors-frame-manager
+   #:window-manager-number-of-desktops-request-event
+   #:window-manager-number-of-desktops-request-event-number)
   (:local-nicknames (#:a #:alexandria)))
 
 (defpackage #:doors

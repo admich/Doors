@@ -30,6 +30,9 @@
 (climi::define-event-class window-manager-map-request-event (window-manager-request-event)
   ((window :initarg :window :reader window-manager-map-request-event-window)))
 
+(climi::define-event-class window-manager-number-of-desktops-request-event (window-manager-request-event)
+  ((number :initarg :number :reader window-manager-number-of-desktops-request-event-number)))
+
 (defun grant-configure-request (event)
   "grant the configure request"
   (with-slots (window x y width height) event
@@ -268,7 +271,7 @@
        (maybe-funcall *wait-function*))
       (:client-message
        (with-sheet-from-window (sheet)
-         (or (clim-clx::port-client-message sheet time type data)
+         (or (port-client-message sheet time type data)
              (maybe-funcall *wait-function*))))
       (t
        (unless (xlib:event-listen (clx-port-display *doors-port*))
@@ -281,3 +284,24 @@
       (stop-wm port))))
 
 
+(defun port-client-message (sheet time type data)
+  (case type
+    (:wm_protocols
+     (let ((message (xlib:atom-name (clx-port-display *doors-port*) (aref data 0))))
+       (case message
+         (:wm_take_focus
+          ;; hmm, this message seems to be sent twice.
+          (when-let ((mirror (sheet-mirror sheet)))
+            (xlib:set-input-focus (clx-port-display *clx-port*)
+                                  (clim-clx::window mirror) :parent (elt data 1)))
+          (make-instance 'window-manager-focus-event :sheet sheet :timestamp time))
+         (:wm_delete_window
+          (make-instance 'window-manager-delete-event :sheet sheet :timestamp time))     
+         (otherwise
+          (warn "Unprocessed WM Protocols message: ~:_message = ~S;~:_ data = ~S;~_ sheet = ~S."
+                message data sheet)))))
+    (:_net_number_of_desktops
+     (make-instance 'window-manager-number-of-desktops-request-event :sheet (or *wm-application* sheet) :number (elt data 0) :timestamp time))
+    (otherwise
+     (warn "Unprocessed client message: ~:_type = ~S;~:_ data = ~S;~_ sheet = ~S."
+           type data sheet))))
