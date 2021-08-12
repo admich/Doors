@@ -134,6 +134,11 @@
       (do () ((<= (length (desktops client)) n))
         (com-remove-desktop (a:lastcar (desktops client)))))))
 
+(defmethod handle-event ((client doors-wm) (event window-manager-current-desktop-request-event))
+  (let ((n (window-manager-current-desktop-request-event-number event)))
+    (when (<= 0 n (1- (length (desktops client))))
+      (com-set-current-desktop (nth n (desktops client))))))
+
 ;;; Desktops
 (defmethod number-of-desktops ((frame doors-wm))
   (length (desktops frame)))

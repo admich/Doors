@@ -33,6 +33,9 @@
 (climi::define-event-class window-manager-number-of-desktops-request-event (window-manager-request-event)
   ((number :initarg :number :reader window-manager-number-of-desktops-request-event-number)))
 
+(climi::define-event-class window-manager-current-desktop-request-event (window-manager-request-event)
+  ((number :initarg :number :reader window-manager-current-desktop-request-event-number)))
+
 (defun grant-configure-request (event)
   "grant the configure request"
   (with-slots (window x y width height) event
@@ -302,6 +305,8 @@
                 message data sheet)))))
     (:_net_number_of_desktops
      (make-instance 'window-manager-number-of-desktops-request-event :sheet (or *wm-application* sheet) :number (elt data 0) :timestamp time))
+    (:_net_current_desktop
+     (make-instance 'window-manager-current-desktop-request-event :sheet (or *wm-application* sheet) :number (elt data 0) :timestamp (elt data 1)))
     (otherwise
      (warn "Unprocessed client message: ~:_type = ~S;~:_ data = ~S;~_ sheet = ~S."
            type data sheet))))

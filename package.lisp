@@ -57,7 +57,9 @@
    #:update-server-timestamp
    #:doors-frame-manager
    #:window-manager-number-of-desktops-request-event
-   #:window-manager-number-of-desktops-request-event-number)
+   #:window-manager-number-of-desktops-request-event-number
+   #:window-manager-current-desktop-request-event
+   #:window-manager-current-desktop-request-event-number)
   (:local-nicknames (#:a #:alexandria)))
 
 (defpackage #:doors
