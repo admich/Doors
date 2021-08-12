@@ -170,3 +170,24 @@
     (setf (frame-properties (active-frame  (port *application-frame*)) :wm-desktop)
           desktop)
     (setf (current-desktop *application-frame*) desktop)))
+
+(define-command (com-create-desktop :name t :command-table doors-wm)
+    ()
+  (with-accessors ((desktops desktops)) *application-frame*
+    (a:appendf desktops
+     (list (make-instance 'desktop
+                          :number (length desktops))))))
+
+(define-command (com-remove-desktop :name t :command-table doors-wm)
+    ((desktop 'desktop :prompt "Select a desktop to remove"))
+  (with-accessors ((desktops desktops)) *application-frame*
+    (when (= 1 (length desktops))
+      (warn "I need at least one desktop")
+      (return-from com-remove-desktop nil))
+    (let ((frames (desktop-frames desktop))
+          (new-desk (nth (mod (1- (desktop-number desktop)) (length desktops)) desktops)))
+      (mapc #'(lambda (f) (setf (frame-properties f :wm-desktop) new-desk)) frames)
+      (when (eql desktop (current-desktop *application-frame*))
+        (setf (current-desktop *application-frame*) new-desk))
+      (a:removef desktops desktop)
+      (renumber-desktops *application-frame*))))

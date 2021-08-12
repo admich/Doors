@@ -172,7 +172,7 @@
 (defun ewmh-update-desktop ()
   (let ((root (find-root))
         (dpy (find-display)))
-    (xlib:change-property root :_NET_NUMBER_OF_DESKTOP
+    (xlib:change-property root :_NET_NUMBER_OF_DESKTOPS
                           (list (length (desktops *wm-application*)))
                                :cardinal 32)
     (xlib:change-property root :_NET_DESKTOP_GEOMETRY

@@ -13,6 +13,15 @@
   (member (frame-properties frame :wm-desktop)
           (list :all-desktops desktop)))
 
+(defun renumber-desktops (doors-wm)
+  (loop for desk in (desktops doors-wm)
+        for i = 0 then (1+ i) do
+          (setf (desktop-number desk) i)))
+
+(defmethod (setf desktops) :around (value doors-wm)
+  (call-next-method)
+  (ewmh-update-desktop))
+
 (defmethod (setf frame-properties) :around (value (frame standard-application-frame) (property (eql :wm-desktop)))
   (declare (ignore property))
   (call-next-method)
@@ -35,4 +44,5 @@
       (with-text-face (stream :bold)
         (format stream " ~d " (+ 1 (desktop-number object))))
       (format stream " ~d " (+ 1 (desktop-number object)))))
+
 
