@@ -59,7 +59,9 @@
    #:window-manager-number-of-desktops-request-event
    #:window-manager-number-of-desktops-request-event-number
    #:window-manager-current-desktop-request-event
-   #:window-manager-current-desktop-request-event-number)
+   #:window-manager-current-desktop-request-event-number
+   #:window-manager-active-window-request-event
+   #:window-manager-active-window-request-event-frame)
   (:local-nicknames (#:a #:alexandria)))
 
 (defpackage #:doors

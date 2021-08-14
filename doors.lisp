@@ -139,6 +139,10 @@
     (when (<= 0 n (1- (length (desktops client))))
       (com-set-current-desktop (nth n (desktops client))))))
 
+(defmethod handle-event ((client doors-wm) (event window-manager-active-window-request-event))
+  (let ((frame (window-manager-active-window-request-event-frame event)))
+      (setf (active-frame (port client)) frame)))
+
 ;;; Desktops
 (defmethod number-of-desktops ((frame doors-wm))
   (length (desktops frame)))

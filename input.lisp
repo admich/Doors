@@ -36,6 +36,10 @@
 (climi::define-event-class window-manager-current-desktop-request-event (window-manager-request-event)
   ((number :initarg :number :reader window-manager-current-desktop-request-event-number)))
 
+;; For the moment I ignore source and current active window because I always obey to the request
+(climi::define-event-class window-manager-active-window-request-event (window-manager-request-event)
+  ((frame :initarg :frame :reader window-manager-active-window-request-event-frame)))
+
 (defun grant-configure-request (event)
   "grant the configure request"
   (with-slots (window x y width height) event
@@ -307,6 +311,9 @@
      (make-instance 'window-manager-number-of-desktops-request-event :sheet (or *wm-application* sheet) :number (elt data 0) :timestamp time))
     (:_net_current_desktop
      (make-instance 'window-manager-current-desktop-request-event :sheet (or *wm-application* sheet) :number (elt data 0) :timestamp (elt data 1)))
+    (:_net_active_window
+     (when (and *wm-application* (panep sheet))
+       (make-instance 'window-manager-active-window-request-event :sheet *wm-application* :frame (pane-frame sheet) :timestamp (elt data 1)))) ;;sourceindication??
     (otherwise
      (warn "Unprocessed client message: ~:_type = ~S;~:_ data = ~S;~_ sheet = ~S."
            type data sheet))))

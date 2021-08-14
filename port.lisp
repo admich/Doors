@@ -46,16 +46,6 @@
               (xwin (clim-clx::window mirror)))
     (xlib:set-input-focus (clx-port-display port) xwin :parent)))
 
-(defmethod (setf active-frame) :after (frame (port doors-port))
-  (when (member (frame-state frame) '(:disabled :shrunk))
-    (enable-frame frame))
-  (when (eql (frame-state frame) :enabled)
-    (unless (eql (frame-properties frame :wm-desktop) :all-desktops)
-      (setf (doors::current-desktop *wm-application*) (frame-properties frame :wm-desktop)))
-    (raise-frame frame)
-    (when (frame-standard-input frame)
-      (stream-set-input-focus (frame-standard-input frame)))))
-
 (defgeneric port-lookup-foreign-sheet (port window))
 (defgeneric port-register-foreign-application (port sheet window))
 (defgeneric port-unregister-foreign-application (port sheet window))
@@ -145,4 +135,20 @@
 
 (defmethod port-set-mirror-transformation :after ((port doors-port) mirror mirror-transformation)
   (xlib:display-force-output (clim-clx::clx-port-display port)))
+
+(defmethod (setf active-frame) :after (frame (port doors-port))
+  (when (member (frame-state frame) '(:disabled :shrunk))
+    (enable-frame frame))
+  (when (eql (frame-state frame) :enabled)
+    (unless (eql (frame-properties frame :wm-desktop) :all-desktops)
+      (setf (doors::current-desktop *wm-application*) (frame-properties frame :wm-desktop)))
+    (raise-frame frame)
+    (when (frame-standard-input frame)
+      (stream-set-input-focus (frame-standard-input frame)))
+    (xlib:change-property (clim-clx::clx-port-window port) :_NET_ACTIVE_WINDOW
+                          (list (if frame
+                                    (xlib:window-id (doors::xwindow-for-properties frame))
+                                    0))
+                          :WINDOW 32)))
+
 
