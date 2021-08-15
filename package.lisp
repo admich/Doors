@@ -61,7 +61,8 @@
    #:window-manager-current-desktop-request-event
    #:window-manager-current-desktop-request-event-number
    #:window-manager-active-window-request-event
-   #:window-manager-active-window-request-event-frame)
+   #:window-manager-active-window-request-event-frame
+   #:send-configure-notify)
   (:local-nicknames (#:a #:alexandria)))
 
 (defpackage #:doors

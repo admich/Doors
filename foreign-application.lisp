@@ -17,6 +17,11 @@
 
 (in-package :clim-doors)
 
+(defparameter *foreign-window-events*  '(:structure-notify
+                                         :property-change
+                                         :focus-change
+                                         :enter-window))
+
 (defclass foreign-application-pane (mirrored-sheet-mixin ; must be the first
                                     fundamental-input-stream
                                     basic-gadget)
@@ -40,8 +45,11 @@
 (defmethod compose-space ((pane foreign-application-pane) &key width height)
   (declare (ignore width height))
   (let* ((xwin (foreign-xwindow pane))
-    	 (width (and xwin (ignore-errors (xlib:drawable-width xwin))))
-    	 (height (and xwin (ignore-errors (xlib:drawable-height xwin)))))
+         (hints (and xwin (xlib:wm-normal-hints xwin)))
+         (hw (when hints (xlib:wm-size-hints-width hints)))
+         (hh (when hints (xlib:wm-size-hints-height hints)))
+    	 (width (or hw (ignore-errors (xlib:drawable-width xwin))))
+    	 (height (or hh (ignore-errors (xlib:drawable-height xwin)))))
     (make-space-requirement :width  (or  width 800)
                             :height (or  height 600))))
 
@@ -54,21 +62,7 @@
     (when xwindow
       (setf (xlib:drawable-width xwindow) w)
       (setf (xlib:drawable-height xwindow) h)
-      (multiple-value-bind (x y)
-          (xlib:translate-coordinates xparent
-                                      0
-                                      0
-                                      (clx-port-window (port pane)))
-        (xlib:send-event xwindow :configure-notify nil
-        	       :event-window xwindow
-        	       :window xwindow
-                   :override-redirect-p nil
-                   :event-mask (xlib:make-event-mask :structure-notify)
-                   :x x :y y
-        	       :width w
-        	       :height h
-                   :border-width 0
-        	       :propagate-p nil)))))
+      (send-configure-notify xwindow))))
 
 (define-application-frame foreign-application ()
   ((foreign-xwindow :initarg :foreign-xwindow :initform nil :accessor foreign-xwindow))
@@ -119,18 +113,27 @@
         (xlib:reparent-window window parent-window 0 0)
         (xlib:map-window window)))))
 
+(defun calculate-initial-position (window)
+  ;; for the moment I don't check win-gravity. In this way I assume always north-west
+  ;; and for the moment I don't check hints at all
+  (values  (xlib:drawable-x window)
+           (xlib:drawable-y window)))
+
 (defun make-foreign-application (window &key (frame-manager (find-frame-manager)))
-  (let ((frame (make-application-frame 'foreign-application
-                                       :foreign-xwindow window
-                                       :state :disowned
-                                       :frame-manager frame-manager))
-        (name (or (ignore-errors (net-wm-name window))
-                  (ignore-errors (xlib:wm-name window))
-                  "NoWin")))
-    (setf (xlib:window-event-mask window) '(:structure-notify))
-    (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name (format nil  "Foreign App: ~a" name))
-    ;; usare semafori invece o server grab
-    (sleep 0.5)))
+  ;; check in wm-hints if the application want start in iconic state
+  (multiple-value-bind (x y) (calculate-initial-position window)
+    (let* ((frame (make-application-frame 'foreign-application
+                                          :foreign-xwindow window
+                                          :left x
+                                          :top y
+                                          :frame-manager frame-manager))
+           (name (or (ignore-errors (net-wm-name window))
+                     (ignore-errors (xlib:wm-name window))
+                     "NoWin")))
+      (setf (xlib:window-event-mask window) *foreign-window-events*)
+      (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name (format nil  "Foreign App: ~a" name))
+      ;; usare semafori invece o server grab
+      (sleep 0.5))))
 
 (defun foreign-application-unmanage-xwindow (frame)
   (when-let ((window (foreign-xwindow frame))

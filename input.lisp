@@ -40,6 +40,21 @@
 (climi::define-event-class window-manager-active-window-request-event (window-manager-request-event)
   ((frame :initarg :frame :reader window-manager-active-window-request-event-frame)))
 
+(defun send-configure-notify (window)
+  ;; may the parent of window
+  (multiple-value-bind (x y)
+      (xlib:translate-coordinates window 0 0
+                                  (xlib:drawable-root window))
+    (xlib:send-event window :configure-notify (xlib:make-event-mask :structure-notify)
+        	                :event-window window
+        	                :window window
+                            :override-redirect-p nil
+                            :x x :y y
+        	                :width (xlib:drawable-width window)
+        	                :height (xlib:drawable-height window)
+                            :border-width 0
+        	                :propagate-p nil)))
+
 (defun grant-configure-request (event)
   "grant the configure request"
   (with-slots (window x y width height) event
@@ -90,7 +105,7 @@
                         type width height x y root-x root-y
                         data override-redirect-p send-event-p
                         target property requestor selection
-                        request first-keycode count value-mask child
+                        request first-keycode count value-mask child atom
                       &allow-other-keys)
   (declare (ignorable first-keycode count child override-redirect-p
                      send-event-p event-window ))
@@ -114,6 +129,7 @@
        (when-let ((win (port-aux-xwindow *doors-port*)))
          (when (xlib:window-equal window win)
            (setf (x-server-timestamp *doors-port*) time)))
+       (log:error "property changed" atom window)
        (return-from event-handler (maybe-funcall *wait-function*)))
       ((:configure-request)
        ;;; maybe I can use with-sheet-from-window here

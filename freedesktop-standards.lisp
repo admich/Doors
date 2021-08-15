@@ -218,4 +218,3 @@
     (or (ignore-errors (net-wm-icon-name window))
         (ignore-errors (xlib:wm-icon-name window))
         (frame-pretty-name frame))))
-
