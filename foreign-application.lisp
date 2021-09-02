@@ -119,21 +119,29 @@
   (values  (xlib:drawable-x window)
            (xlib:drawable-y window)))
 
+(defun initial-state (window)
+  (let ((hints (xlib:wm-hints window)))
+    (if (and hints
+             (eql :iconic (xlib:wm-hints-initial-state hints)))
+        :shrunk
+        :disowned)))
+
 (defun make-foreign-application (window &key (frame-manager (find-frame-manager)))
-  ;; check in wm-hints if the application want start in iconic state
-  (multiple-value-bind (x y) (calculate-initial-position window)
-    (let* ((frame (make-application-frame 'foreign-application
-                                          :foreign-xwindow window
-                                          :left x
-                                          :top y
-                                          :frame-manager frame-manager))
-           (name (or (ignore-errors (net-wm-name window))
-                     (ignore-errors (xlib:wm-name window))
-                     "NoWin")))
-      (setf (xlib:window-event-mask window) *foreign-window-events*)
-      (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name (format nil  "Foreign App: ~a" name))
-      ;; usare semafori invece o server grab
-      (sleep 0.5))))
+  (let ((initial-state (initial-state window)))
+    (multiple-value-bind (x y) (calculate-initial-position window)
+      (let* ((frame (make-application-frame 'foreign-application
+                                            :foreign-xwindow window
+                                            :left x
+                                            :state initial-state
+                                            :top y
+                                            :frame-manager frame-manager))
+             (name (or (ignore-errors (doors::net-wm-name window))
+                       (ignore-errors (xlib:wm-name window))
+                       "NoWin")))
+        (setf (xlib:window-event-mask window) *foreign-window-events*)
+        (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name (format nil  "Foreign App: ~a" name))
+        ;; usare semafori invece o server grab
+        (sleep 0.5)))))
 
 (defun foreign-application-unmanage-xwindow (frame)
   (when-let ((window (foreign-xwindow frame))
