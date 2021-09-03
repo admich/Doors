@@ -72,6 +72,12 @@
            (new-active (nth (mod (1- old-position) (length frames)) frames)))
       (setf (active-frame (port *application-frame*)) new-active))))
 
+(define-doors-wm-command-with-grabbed-keystroke (com-last-frame :name t :keystroke (#\TAB :super))
+    ()
+  (let* ((new-active (second (managed-frames-ordered *application-frame*))))
+    (when new-active
+      (setf (active-frame (port *application-frame*)) new-active))))
+
 (define-doors-wm-command-with-grabbed-keystroke (com-banish-pointer :name t :keystroke (#\. :super))
     ()
   (setf (pointer-position (port-pointer (port *application-frame*)))

@@ -104,6 +104,9 @@
                                (not (typep x 'standard-application-frame))))
              (frame-manager-frames wm)))
 
+(defun managed-frames-ordered (&optional (wm *wm-application*))
+  (reverse (xlib:get-property (find-root) :_NET_CLIENT_LIST_STACKING :transform #'xwindow-top-level-to-frame )))
+
 (defmethod dispatch-event ((client doors-wm) event)
   (queue-event client event))
 
