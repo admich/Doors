@@ -109,6 +109,14 @@
     ()
   (uiop:run-program "dmenu_run -i -b -p \"run command:\""))
 
+(define-doors-wm-command-with-grabbed-keystroke (com-rofi-run :keystroke (#\Return :super :shift))
+    ()
+  (uiop:run-program "rofi -show run"))
+
+(define-doors-wm-command-with-grabbed-keystroke (com-select-windows :keystroke (#\s :super))
+    ()
+  (uiop:run-program "rofi -show window"))
+
 (define-doors-wm-command-with-grabbed-keystroke (com-quit-doors :name t :keystroke (#\Q :super))
     ()
   (setf *wm-application* nil)
