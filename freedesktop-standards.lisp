@@ -206,7 +206,8 @@
   (call-next-method)
   (unless (frame-properties frame :wm-desktop)
     (setf (frame-properties frame :wm-desktop) (current-desktop *wm-application*)))
-  (set-xwindow-state (xwindow-for-properties frame)  +normal-state+))
+  (set-xwindow-state (xwindow-for-properties frame)  +normal-state+)
+  (setf (active-frame (port frame)) frame))
 
 (defmethod disable-frame :around ((frame standard-application-frame))
   (xlib:delete-property (xwindow-for-properties frame) :WM_STATE)

@@ -77,7 +77,6 @@
                            window :parent)))
 
 (defmethod foreign-application-frame-top-level ((frame application-frame))
-  (setf (active-frame (port frame)) frame)
   (clim-extensions:simple-event-loop))
 
 (defmethod frame-exit :around ((frame foreign-application))
