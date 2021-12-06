@@ -26,5 +26,5 @@
 ;; (defmethod initialize-instance :after ((graft delorean-graft) &rest args)
 ;;   (setf (climi::%sheet-medium graft) (make-medium (port graft) graft)))
 (defmethod handle-event ((pane doors-graft) event)
-  (log:error "When sheet is unknown the event is sent to the graft and it do nothing" event)
+  (log:warn "When sheet is unknown the event is sent to the graft and it do nothing" event)
   nil)

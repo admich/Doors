@@ -129,7 +129,7 @@
        (when-let ((win (port-aux-xwindow *doors-port*)))
          (when (xlib:window-equal window win)
            (setf (x-server-timestamp *doors-port*) time)))
-       (log:error "property changed" atom window)
+       (log:warn "property changed" atom window)
        (return-from event-handler (maybe-funcall *wait-function*)))
       ((:configure-request)
        ;;; maybe I can use with-sheet-from-window here

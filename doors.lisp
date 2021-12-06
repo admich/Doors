@@ -400,8 +400,6 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
     t)
   (:method ((frame-manager doors-wm) frame)
     (let* ((tls (frame-top-level-sheet frame))
-           (panes (frame-panes frame))
-           (parent (sheet-parent tls))
            (graft (graft frame)))
       (if (frame-properties frame :fullscreen)
           (progn
