@@ -229,3 +229,21 @@
     (or (ignore-errors (net-wm-icon-name window))
         (ignore-errors (xlib:wm-icon-name window))
         (frame-pretty-name frame))))
+
+(defun icccm-input-model (window)
+  "Return the input model (icccm):
+Input Model      Input Field WM_TAKE_FOCUS
+No Input         False       Absent       
+Passive          True        Absent       
+Locally Active   True        Present      
+Globally Active  False       Present      
+"
+  (let* ((hints (xlib:wm-hints  window))
+         (input-fields (not (eql :off (xlib:wm-hints-input hints))))
+         (wm-take-focus (member :wm_take_focus (xlib:wm-protocols window))))
+    (log:warn input-fiels wm-take-focus)
+    (cond
+      ((and (not input-fields) (not wm-take-focus)) :no-input)
+      ((and input-fields (not wm-take-focus)) :passive)
+      ((and input-fields wm-take-focus) :locally-active)
+      ((and (not input-fields) wm-take-focus) :globally-active))))
