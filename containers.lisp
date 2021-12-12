@@ -33,9 +33,10 @@
 
 (defmethod handle-repaint ((pane wm-ornaments-pane) region)
   (let* ((region (sheet-region pane))
-         (title (frame-pretty-name (pane-frame pane))))
+         (title (frame-pretty-name (pane-frame pane)))
+         (ink (if (eql (pane-frame pane) (active-frame (port pane))) +blue+ +lightsteelblue+)))
     (with-bounding-rectangle* (x1 y1 x2 y2) region
-      (declare (ignore x1 y1 x2))
+      (draw-rectangle* pane x1 y1 x2 y2 :filled t :ink ink)
       (draw-text* pane title 5 y2 :align-y :bottom))))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-enter-event))

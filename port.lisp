@@ -136,6 +136,15 @@
 (defmethod port-set-mirror-transformation :after ((port doors-port) mirror mirror-transformation)
   (xlib:display-force-output (clim-clx::clx-port-display port)))
 
+(defmethod (setf active-frame) :around (frame (port doors-port))
+  (let ((old-active (active-frame port)))
+    (call-next-method)
+    (let ((tls (frame-top-level-sheet frame)))
+      (repaint-sheet tls +everywhere+))
+    (when old-active
+      (repaint-sheet (frame-top-level-sheet old-active) +everywhere+))))
+
+
 (defmethod (setf active-frame) :after (frame (port doors-port))
   (when (member (frame-state frame) '(:disabled :shrunk))
     (enable-frame frame))

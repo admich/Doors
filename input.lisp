@@ -118,7 +118,7 @@
                   ,@body)))
     (case event-key
       ((:focus-out)
-       (log:error "focus out eliminare " window)
+       (log:warn "focus out eliminare " window)
        ;;; check this 
        (when  (eq :none (xlib:input-focus display))
          (xlib:set-input-focus display
@@ -127,7 +127,7 @@
 ;         (ensure-focus-frame)
          (return-from event-handler (maybe-funcall *wait-function*))))
       ((:focus-in)
-       (log:error "focus in" window)
+       (log:warn "focus in" window)
        ;;; CHECK THIS
        (return-from event-handler (maybe-funcall *wait-function*)))
       ((:property-notify)
