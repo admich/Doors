@@ -118,6 +118,7 @@
                   ,@body)))
     (case event-key
       ((:focus-out)
+       (log:error "focus out eliminare " window)
        ;;; check this 
        (when  (eq :none (xlib:input-focus display))
          (xlib:set-input-focus display
@@ -125,6 +126,10 @@
                                :parent)
 ;         (ensure-focus-frame)
          (return-from event-handler (maybe-funcall *wait-function*))))
+      ((:focus-in)
+       (log:error "focus in" window)
+       ;;; CHECK THIS
+       (return-from event-handler (maybe-funcall *wait-function*)))
       ((:property-notify)
        (when-let ((win (port-aux-xwindow *doors-port*)))
          (when (xlib:window-equal window win)
@@ -301,11 +306,6 @@
          (xlib:display-force-output (clx-port-display *doors-port*)))
        (maybe-funcall *wait-function*)))))
 
-(dotimes (i 10)
-  (let ((wm-sel (alexandria:make-keyword (format nil "WM_S~d" i))))
-    (defmethod release-selection ((port doors-port) (selection (eql wm-sel)) object)
-      (stop-wm port))))
-
 
 (defun port-client-message (sheet time type data)
   (case type
@@ -315,7 +315,7 @@
          (:wm_take_focus
           ;; hmm, this message seems to be sent twice.
           (when-let ((mirror (sheet-mirror sheet)))
-            (xlib:set-input-focus (clx-port-display *clx-port*)
+            (xlib:set-input-focus (clx-port-display *doors-port*)
                                   (clim-clx::window mirror) :parent (elt data 1)))
           (make-instance 'window-manager-focus-event :sheet sheet :timestamp time))
          (:wm_delete_window

@@ -15,8 +15,23 @@
 ;;;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 ;;;; USA
 
+(defpackage #:freedesktop-standards
+  (:use #:cl)
+  (:export
+   #:+normal-state+
+   #:+iconic-state+
+   #:+withdrawn-state+
+   #:+icccm-atoms+
+   #:+ewmh-atoms+
+   #:intern-atoms ;; CHECK IF IT IS NECESSARY TO EXPORT
+   #:net-wm-name
+   #:net-wm-icon-name
+   #:icccm-input-model
+   #:set-xwindow-state)
+  (:local-nicknames (#:a #:alexandria)))
+
 (defpackage #:clim-doors
-  (:use :clim :clim-lisp :clim-backend :clim-xcommon :clim-clx)
+  (:use #:clim #:clim-lisp #:clim-backend #:clim-xcommon #:clim-clx #:freedesktop-standards)
   (:import-from :alexandria
                 #:when-let*
                 #:when-let)
@@ -66,7 +81,7 @@
   (:local-nicknames (#:a #:alexandria)))
 
 (defpackage #:doors
-  (:use #:clim-lisp #:clim #:clim-doors)
+  (:use #:clim-lisp #:clim #:clim-doors #:freedesktop-standards)
   (:export #:doors)
   (:local-nicknames (#:a #:alexandria)))
 

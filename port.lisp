@@ -101,7 +101,7 @@
                     nil)
                    ((= keysym (xlib:keycode->keysym display keycode 1))
                     t)
-                   (t (error "Error in find the keycode of char ~S" char))))
+                   (t (error "Error in find the keycode of ~S" key))))
          state)
     (when shift? (pushnew :shift modifiers))
     ;; maybe is better to use logior
@@ -119,18 +119,18 @@
 
 (defmethod initialize-instance :after ((port doors-port) &rest args)
   (declare (ignore args))
-  (let ((options (cdr (port-server-path port))))
-    ;; remove the clx-frame-manager
-    (pop (slot-value port 'frame-managers))
-    (setf (slot-value port 'pointer)
-          (make-instance 'doors-pointer :port port))
-    (setf (port-aux-xwindow port) (xlib:create-window :parent (clx-port-window port)
-                                             :override-redirect :on
-                                             :width 1 :height 1
-                                             :x -10 :y -10
-                                             :event-mask '(:property-change)))))
+  ;; remove the clx-frame-manager
+  (pop (slot-value port 'frame-managers))
+  (setf (slot-value port 'pointer)
+        (make-instance 'doors-pointer :port port))
+  (setf (port-aux-xwindow port) (xlib:create-window :parent (clx-port-window port)
+                                                    :override-redirect :on
+                                                    :width 1 :height 1
+                                                    :x -10 :y -10
+                                                    :event-mask '(:property-change))))
 
 (defmethod make-graft ((port doors-port) &key (orientation :default) (units :device))
+  (declare (ignore orientation units))
   (change-class (call-next-method) 'doors-graft))
 
 (defmethod port-set-mirror-transformation :after ((port doors-port) mirror mirror-transformation)

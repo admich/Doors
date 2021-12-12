@@ -149,6 +149,7 @@
     (format t "]")))
 
 (defun display-info (frame pane)
+  (declare (ignore frame))
   (format pane " " )
   (multiple-value-bind (sec min h d m y) (decode-universal-time (get-universal-time))
     (format pane "~d/~2,'0d/~2,'0d ~2,'0d:~2,'0d:~2,'0d " y m d h min sec))

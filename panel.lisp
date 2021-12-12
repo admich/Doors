@@ -90,6 +90,7 @@
   (loop for dir  in (ppcre:split ":" (uiop:getenv "PATH"))
         appending (map 'list #'pathname-name (uiop:directory-files (uiop:ensure-directory-pathname dir)))))
 
+;;; CHECK THIS
 (define-presentation-type program-name () :inherit-from 'string)
 
 (define-presentation-method presentation-typep (object (type program-name))

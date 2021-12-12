@@ -59,10 +59,10 @@
    (screen :initarg :screen :accessor tray-screen)))
 
 (defmethod compose-space ((pane tray-pane) &key width height)
-  (make-space-requirement :width  (or (and (tray-win pane)
+  (make-space-requirement :width  (or width (and (tray-win pane)
                                            (xlib:drawable-width (tray-win pane))) 0) 
-                          :height (or (and (tray-win pane)
-                                           (xlib:drawable-height (tray-win pane)))
+                          :height (or height (and (tray-win pane)
+                                                  (xlib:drawable-height (tray-win pane)))
                                       (tray-icon-height pane))))
 
 (defun tray-loop (tray)
@@ -242,6 +242,7 @@ protocol."
   "Sorts the icons embedded in TRAY, tiles them and updates the
 geometry of its windows. Maps the tray windows - or unmaps them, based
 on the TRAY state - if MAP-P is T."
+  (declare (ignore map-p))  ; CHECK when use map-p
   (tray-tile-icons tray)
   (tray-update-geometry tray)
   (change-space-requirements tray))

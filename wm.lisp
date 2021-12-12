@@ -26,11 +26,119 @@
                   (eq (xlib:window-map-state win) :unmapped)) do
                     (make-foreign-application win :frame-manager wm))))
 
+(defun ewmh-startup (port)
+  (let ((root (clim-clx:clx-port-window port))
+        (dpy (clim-clx:clx-port-display port)))
+    (xlib:change-property root :_NET_SUPPORTED
+                          (mapcar #'(lambda (x) (xlib:find-atom dpy x)) +ewmh-atoms+)
+                               :atom 32)
+    (let ((supporting-window (xlib:create-window
+                      :parent root
+                      :x 0 :y 1 :width 1 :height 1)))
+      (setf (xlib:wm-name supporting-window) "doors")
+      (xlib:change-property supporting-window :_NET_WM_NAME
+                          "doors" :string 32
+                          :transform #'xlib:char->card8)
+      (xlib:change-property root :_NET_SUPPORTING_WM_CHECK
+                            (list supporting-window) :window 32
+                            :transform #'xlib:drawable-id)
+      (xlib:change-property supporting-window :_NET_SUPPORTING_WM_CHECK
+                          (list supporting-window) :window 32
+                                      :transform #'xlib:drawable-id)
+      (setf (net-supporting-wm-check *wm-application*) supporting-window))))
+
+(defun ewmh-stop ()
+  (let ((supporting-window (net-supporting-wm-check *wm-application*)))
+    (setf (net-supporting-wm-check *wm-application*) nil)
+    (xlib:destroy-window supporting-window)))
+
+(defun ewmh-update-client-list-stacking ()
+  (let* ((root (xroot *wm-application*))
+         (wins (loop for win in (xlib:query-tree root)
+                     for sheet = (getf (xlib:window-plist win) 'sheet)
+                     for frame = (and sheet (pane-frame sheet))
+                     when (member frame (managed-frames))
+                       collect (xwindow-for-properties frame))))
+    (xlib:change-property root :_NET_CLIENT_LIST_STACKING wins
+                               :window 32
+                               :transform #'xlib:drawable-id
+                               :mode :replace)))
+
+(defun ewmh-update-client-list ()
+  (let ((root (xroot *wm-application*)))
+    (xlib:change-property root :_NET_CLIENT_LIST
+                          (mapcar #'(lambda (x) (xwindow-for-properties x))
+                                  (reverse (managed-frames)))
+                               :window 32
+                               :transform #'xlib:drawable-id
+                               :mode :replace))
+  (ewmh-update-client-list-stacking))
+
+(defun ewmh-update-desktop ()
+  (let ((root (xroot *wm-application*)))
+    (xlib:change-property root :_NET_NUMBER_OF_DESKTOPS
+                          (list (length (desktops *wm-application*)))
+                               :cardinal 32)
+    (xlib:change-property root :_NET_DESKTOP_GEOMETRY
+                          (list (xlib:drawable-width root) (xlib:drawable-height root))
+                               :cardinal 32)
+    (xlib:change-property root :_NET_DESKTOP_VIEWPORT
+                          (list 0 0)
+                               :cardinal 32)
+    (xlib:change-property root :_NET_CURRENT_DESKTOP
+                          (list (position (current-desktop *wm-application*) (desktops *wm-application*)))
+                          :cardinal 32)))
+
+(defgeneric xwindow-for-properties (frame)
+  (:documentation "The x window where set the properties")
+  (:method ((frame standard-application-frame))
+    (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))))
+  (:method ((frame foreign-application))
+    (clim-doors:foreign-xwindow frame)))
+
+(defun xwindow-top-level-to-frame (window-or-id &optional (port (find-port)))
+  "return the application frame from the xwindow top-level sheet.
+   It is the reverse of xwidnow-for-properties"
+  (let* ((dpy (clim-clx::clx-port-display port))
+         (window (if (integerp window-or-id)
+                     (xlib::lookup-window dpy window-or-id)
+                     window-or-id))
+         (sheet (or (getf (xlib:window-plist window) 'sheet) (port-lookup-foreign-sheet (port *wm-application*) window))))
+    (pane-frame sheet)))
+
+(defmethod enable-frame :around ((frame standard-application-frame))
+  (call-next-method)
+  (unless (frame-properties frame :wm-desktop)
+    (setf (frame-properties frame :wm-desktop) (current-desktop *wm-application*)))
+  (set-xwindow-state (xwindow-for-properties frame)  +normal-state+)
+  (setf (active-frame (port frame)) frame))
+
+(defmethod disable-frame :around ((frame standard-application-frame))
+  (xlib:delete-property (xwindow-for-properties frame) :WM_STATE)
+  (call-next-method))
+
+(defmethod shrink-frame :around ((frame standard-application-frame))
+  (set-xwindow-state (xwindow-for-properties frame) +iconic-state+)
+  (call-next-method))
+
+
+(defmethod frame-pretty-name ((frame foreign-application))
+  (let ((window (foreign-xwindow frame)))
+    (or (ignore-errors (net-wm-name window))
+        (ignore-errors (xlib:wm-name window))
+        "NoWin")))
+
+(defmethod frame-short-name ((frame foreign-application))
+  (let ((window (foreign-xwindow frame)))
+    (or (ignore-errors (net-wm-icon-name window))
+        (ignore-errors (xlib:wm-icon-name window))
+        (frame-pretty-name frame))))
+
 (defun start-wm (wm)
   "Initialize the icccm and ewmh protocols"
   (let ((replace (doors-wm-replace-wm wm))
         (port (port wm))
-        (dpy (find-display))
+        (dpy (xdisplay wm))
         (root (xroot wm))
         timestamp)
     (intern-atoms dpy +icccm-atoms+)
@@ -81,7 +189,7 @@
                        :data (list timestamp
                                    (xlib:find-atom dpy *wm-selection*)
                                    (xlib:window-id wm-sn-manager)))
-      (ewmh-startup)
+      (ewmh-startup port)
       (check-for-existing-window wm)
       (loop for key in *grabbed-keystrokes* do
         (grab/ungrab-keystroke key :port port))
@@ -102,3 +210,9 @@
     (setf (wm-selection-manager port) nil)
     (ewmh-stop)
     (setf (xlib:window-event-mask (xroot wm)) (xlib:make-event-mask))))
+
+(dotimes (i 10)
+  (let ((wm-sel (alexandria:make-keyword (format nil "WM_S~d" i))))
+    (defmethod release-selection (wm (selection (eql wm-sel)) object)
+      (stop-wm wm))))
+

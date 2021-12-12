@@ -35,6 +35,7 @@
   (let* ((region (sheet-region pane))
          (title (frame-pretty-name (pane-frame pane))))
     (with-bounding-rectangle* (x1 y1 x2 y2) region
+      (declare (ignore x1 y1 x2))
       (draw-text* pane title 5 y2 :align-y :bottom))))
 
 (defmethod handle-event ((pane wm-ornaments-pane) (event pointer-enter-event))
@@ -81,7 +82,7 @@
          (tracking-pointer (outer :multiple-window nil)
            (:pointer-motion (x y)
                             (resize-sheet outer x y))
-           (:pointer-button-release (x y)
+           (:pointer-button-release ()
                                     (a:when-let ((panel (wm-panel *wm-application*)))
                                       (clime:frame-display-pointer-documentation-string panel ""))
                                     (return-from track))))))
@@ -112,5 +113,6 @@
   (reorder-sheets tls (reverse (sheet-children tls))))
 
 (defmethod compose-space :around ((pane stack-top-level-sheet-pane) &key width height)
+  (declare (ignore width height))
   (setf (climi::pane-space-requirement pane) nil)
   (call-next-method))

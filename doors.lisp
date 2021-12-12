@@ -92,12 +92,17 @@
     :initarg :top-level-lambda
     :reader climi::frame-top-level-lambda)))
 
-(defun xroot (wm)
-  (clim-clx::window (sheet-mirror (graft wm))))
+(defun xroot (frame-or-wm)
+  (clim-clx::window (sheet-mirror (graft frame-or-wm))))
+
+(defun xdisplay (frame-or-wm)
+  (clim-clx::clx-port-display (port frame-or-wm)))
 
 (defmethod initialize-instance :after ((obj doors-wm) &rest initargs)
-  (setf (slot-value obj 'current-desktop) (first (slot-value obj 'desktops))
-        (slot-value obj 'main-graft) (graft (port obj))))
+  (declare (ignore initargs))
+  (let ((port (port obj)))
+    (setf (slot-value obj 'current-desktop) (first (slot-value obj 'desktops))
+          (slot-value obj 'main-graft) (graft port))))
 
 (defun managed-frames (&optional (wm *wm-application*))
   (remove-if #'(lambda (x) (or (eq (frame-state x) :disabled)
@@ -105,7 +110,7 @@
              (frame-manager-frames wm)))
 
 (defun managed-frames-ordered (&optional (wm *wm-application*))
-  (reverse (xlib:get-property (find-root) :_NET_CLIENT_LIST_STACKING :transform #'xwindow-top-level-to-frame )))
+  (reverse (xlib:get-property (xroot wm) :_NET_CLIENT_LIST_STACKING :transform #'xwindow-top-level-to-frame )))
 
 (defmethod dispatch-event ((client doors-wm) event)
   (queue-event client event))
@@ -201,8 +206,8 @@
                (handler-bind
                    ((frame-exit
                       (lambda (condition)
-                        (unless (%frame-exit-handled condition)
-                          (setf (%frame-exit-handled condition) t)
+                        (unless (climi::%frame-exit-handled condition)
+                          (setf (climi::%frame-exit-handled condition) t)
                           (let ((exiting-frame (frame-exit-frame condition)))
                             (if (eq exiting-frame frame)
                                 (return-from run-frame-loop)
@@ -238,7 +243,7 @@
           (command-unparser 'command-line-command-unparser)
           (partial-command-parser
            'command-line-read-remaining-arguments-for-partial-command)
-          (prompt "Command: "))
+     &allow-other-keys)
   ;; Give each pane a fresh start first time through.
   (loop
     ;; The variables are rebound each time through the loop because the
@@ -387,12 +392,11 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
                 (move-and-resize-sheet tls left top width height)
                 (allocate-space tls width height)
                 (setf (frame-properties frame :position) nil))
-              (let ((desktop-region (desktop-region frame)))
-                (multiple-value-bind (x y w h) (new-geometry position)
-                  (save-frame-geometry frame)
-                  (move-and-resize-sheet tls x y w h)
-                  (allocate-space tls w h)
-                  (setf (frame-properties frame :position) position)))))))))
+              (multiple-value-bind (x y w h) (new-geometry position)
+                (save-frame-geometry frame)
+                (move-and-resize-sheet tls x y w h)
+                (allocate-space tls w h)
+                (setf (frame-properties frame :position) position))))))))
 
 (defgeneric fullscreen-frame (frame-manager frame)
   (:documentation "Fullscreen the FRAME according to the policy of the FRAME-MANAGER")

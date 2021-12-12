@@ -17,16 +17,16 @@
 
 ;;;; icccm and ewmh related stuff
 
-(in-package :doors)
+(in-package :freedesktop-standards)
 
 (defconstant +normal-state+ 1)
 (defconstant +iconic-state+ 3)
 (defconstant +withdrawn-state+ 0)
 
-(defconstant +icccm-atoms+
-  '(:WM_STATE))
+(a:define-constant +icccm-atoms+
+  '(:WM_STATE) :test #'equal)
 
-(defconstant  +ewmh-atoms+
+(a:define-constant  +ewmh-atoms+
   '(;;; Root Window Properties (and Related Messages)
     :_NET_SUPPORTED
     :_NET_CLIENT_LIST
@@ -81,7 +81,7 @@
     
     ;;; Compositing Managers
     ;; :_NET_WM_CM_Sn Manager Selection
-    ))
+    ) :test #'equal)
 
 (defun intern-atoms (dpy atoms)
   (mapcar #'(lambda (atom) (xlib:intern-atom dpy atom)) atoms))
@@ -104,132 +104,6 @@
 (defun net-wm-icon-name (window)
   (get-utf8-property window :_NET_WM_ICON_NAME))
 
-(defun all-windows-tree (&optional (root (clim-clx::window (sheet-mirror (find-graft )))))
-  (let ((children (xlib:query-tree root)))
-    (if (null children)
-        root
-        (list root (mapcar #'(lambda (x) (all-windows-tree x)) children)))))
-
-(defun all-windows (&optional (root (clim-clx::window (sheet-mirror (find-graft )))))
-  (alexandria:flatten (all-windows-tree root)))
-
-(defun find-root ()
-  (clim-clx::window (sheet-mirror (find-graft))))
-
-(defun find-display ()
-  (clim-clx:clx-port-display (find-port)))
-
-(defun ewmh-startup ()
-  (let ((root (find-root))
-        (dpy (find-display)))
-    (xlib:change-property root :_NET_SUPPORTED
-                          (mapcar #'(lambda (x) (xlib:find-atom dpy x)) +ewmh-atoms+)
-                               :atom 32)
-    (let ((supporting-window (xlib:create-window
-                      :parent root
-                      :x 0 :y 1 :width 1 :height 1)))
-      (setf (xlib:wm-name supporting-window) "doors")
-      (xlib:change-property supporting-window :_NET_WM_NAME
-                          "doors" :string 32
-                          :transform #'xlib:char->card8)
-      (xlib:change-property root :_NET_SUPPORTING_WM_CHECK
-                            (list supporting-window) :window 32
-                            :transform #'xlib:drawable-id)
-      (xlib:change-property supporting-window :_NET_SUPPORTING_WM_CHECK
-                          (list supporting-window) :window 32
-                                      :transform #'xlib:drawable-id)
-      (setf (net-supporting-wm-check *wm-application*) supporting-window))))
-
-(defun ewmh-stop ()
-  (let ((supporting-window (net-supporting-wm-check *wm-application*)))
-    (setf (net-supporting-wm-check *wm-application*) nil)
-    (xlib:destroy-window supporting-window)))
-
-(defun ewmh-update-client-list-stacking ()
-  (let* ((root (find-root))
-         (dpy (find-display))
-         (wins (loop for win in (xlib:query-tree root)
-                     for sheet = (getf (xlib:window-plist win) 'sheet)
-                     for frame = (and sheet (pane-frame sheet))
-                     when (member frame (managed-frames))
-                       collect (xwindow-for-properties frame))))
-    (xlib:change-property root :_NET_CLIENT_LIST_STACKING wins
-                               :window 32
-                               :transform #'xlib:drawable-id
-                               :mode :replace)))
-
-(defun ewmh-update-client-list ()
-  (let ((root (find-root))
-        (dpy (find-display)))
-    (xlib:change-property root :_NET_CLIENT_LIST
-                          (mapcar #'(lambda (x) (xwindow-for-properties x))
-                                  (reverse (managed-frames)))
-                               :window 32
-                               :transform #'xlib:drawable-id
-                               :mode :replace))
-  (ewmh-update-client-list-stacking))
-
-(defun ewmh-update-desktop ()
-  (let ((root (find-root))
-        (dpy (find-display)))
-    (xlib:change-property root :_NET_NUMBER_OF_DESKTOPS
-                          (list (length (desktops *wm-application*)))
-                               :cardinal 32)
-    (xlib:change-property root :_NET_DESKTOP_GEOMETRY
-                          (list (xlib:drawable-width root) (xlib:drawable-height root))
-                               :cardinal 32)
-    (xlib:change-property root :_NET_DESKTOP_VIEWPORT
-                          (list 0 0)
-                               :cardinal 32)
-    (xlib:change-property root :_NET_CURRENT_DESKTOP
-                          (list (position (current-desktop *wm-application*) (desktops *wm-application*)))
-                          :cardinal 32)))
-
-(defgeneric xwindow-for-properties (frame)
-  (:documentation "The x window where set the properties")
-  (:method ((frame standard-application-frame))
-    (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))))
-  (:method ((frame foreign-application))
-    (clim-doors:foreign-xwindow frame)))
-
-(defun xwindow-top-level-to-frame (window-or-id)
-  "return the application frame from the xwindow top-level sheet.
-   It is the reverse of xwidnow-for-properties"
-  (let* ((dpy (find-display))
-         (window (if (integerp window-or-id)
-                     (xlib::lookup-window dpy window-or-id)
-                     window-or-id))
-         (sheet (or (getf (xlib:window-plist window) 'sheet) (port-lookup-foreign-sheet (port *wm-application*) window))))
-    (pane-frame sheet)))
-
-(defmethod enable-frame :around ((frame standard-application-frame))
-  (call-next-method)
-  (unless (frame-properties frame :wm-desktop)
-    (setf (frame-properties frame :wm-desktop) (current-desktop *wm-application*)))
-  (set-xwindow-state (xwindow-for-properties frame)  +normal-state+)
-  (setf (active-frame (port frame)) frame))
-
-(defmethod disable-frame :around ((frame standard-application-frame))
-  (xlib:delete-property (xwindow-for-properties frame) :WM_STATE)
-  (call-next-method))
-
-(defmethod shrink-frame :around ((frame standard-application-frame))
-  (set-xwindow-state (xwindow-for-properties frame) +iconic-state+)
-  (call-next-method))
-
-
-(defmethod frame-pretty-name ((frame foreign-application))
-  (let ((window (foreign-xwindow frame)))
-    (or (ignore-errors (net-wm-name window))
-        (ignore-errors (xlib:wm-name window))
-        "NoWin")))
-
-(defmethod frame-short-name ((frame foreign-application))
-  (let ((window (foreign-xwindow frame)))
-    (or (ignore-errors (net-wm-icon-name window))
-        (ignore-errors (xlib:wm-icon-name window))
-        (frame-pretty-name frame))))
-
 (defun icccm-input-model (window)
   "Return the input model (icccm):
 Input Model      Input Field WM_TAKE_FOCUS
@@ -241,7 +115,7 @@ Globally Active  False       Present
   (let* ((hints (xlib:wm-hints  window))
          (input-fields (not (eql :off (xlib:wm-hints-input hints))))
          (wm-take-focus (member :wm_take_focus (xlib:wm-protocols window))))
-    (log:warn input-fiels wm-take-focus)
+    (log:warn input-fields wm-take-focus)
     (cond
       ((and (not input-fields) (not wm-take-focus)) :no-input)
       ((and input-fields (not wm-take-focus)) :passive)
