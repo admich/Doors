@@ -86,7 +86,8 @@
                                     (a:when-let ((panel (wm-panel *wm-application*)))
                                       (clime:frame-display-pointer-documentation-string panel ""))
                                     (return-from track))))))
-        (setf (active-frame port) frame)))
+    (setf (frame-properties frame :position) nil)
+    (setf (active-frame port) frame)))
 
 ;; stack container
 (defclass stack-top-level-sheet-pane (climi::top-level-sheet-pane climi::vbox-pane)
