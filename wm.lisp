@@ -94,7 +94,8 @@
   (:method ((frame standard-application-frame))
     (clim-clx::window (sheet-mirror (frame-top-level-sheet frame))))
   (:method ((frame foreign-application))
-    (clim-doors:foreign-xwindow frame)))
+    (or (clim-doors:foreign-xwindow frame)
+        (call-next-method))))
 
 (defun xwindow-top-level-to-frame (window-or-id &optional (port (find-port)))
   "return the application frame from the xwindow top-level sheet.

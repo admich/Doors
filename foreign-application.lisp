@@ -71,6 +71,9 @@
   (:layouts (:default (vertically () main)))
   (:top-level (foreign-application-frame-top-level . nil)))
 
+(defun foreign-application-p (frame)
+  (typep frame 'foreign-application))
+
 (defmethod (setf active-frame) :after ((frame foreign-application) (port doors-port))
   (when-let ((window (foreign-xwindow frame)))
     (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
@@ -153,5 +156,9 @@
     (port-unregister-foreign-application (port frame) pane window)
     (setf (foreign-xwindow frame) nil)))
 
-
-
+(defun restart-foreign-application (frame)
+  (when (foreign-application-p frame)
+    (let ((xwindow (foreign-xwindow frame)))
+      (foreign-application-unmanage-xwindow frame)
+      (destroy-frame frame)
+      (make-foreign-application xwindow))))
