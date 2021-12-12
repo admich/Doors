@@ -117,6 +117,12 @@
                ;; sheet is enabled from enable-frame
                :enabled-p nil))
 
+;;;; I made a PR on McCLIM that was reverted in b6299768
+ (defmethod disown-frame :before
+     ((fm headless-frame-manager) (frame application-frame))
+   (disable-frame frame)
+   (alexandria:removef (slot-value fm 'frames) frame))
+
 ;;; some keysym
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)

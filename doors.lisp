@@ -110,7 +110,7 @@
              (frame-manager-frames wm)))
 
 (defun managed-frames-ordered (&optional (wm *wm-application*))
-  (reverse (xlib:get-property (xroot wm) :_NET_CLIENT_LIST_STACKING :transform #'xwindow-top-level-to-frame )))
+  (reverse (remove nil (xlib:get-property (xroot wm) :_NET_CLIENT_LIST_STACKING :transform #'xwindow-top-level-to-frame ))))
 
 (defmethod dispatch-event ((client doors-wm) event)
   (queue-event client event))
@@ -155,17 +155,26 @@
 (defmethod number-of-desktops ((frame doors-wm))
   (length (desktops frame)))
 
-(defmethod (setf current-desktop) :around (value (frame doors-wm))
-  (setf (desktop-active-p (current-desktop frame)) nil)
-  (call-next-method )
-  (setf (desktop-active-p (current-desktop frame)) t)
-  (xlib:change-property (xroot frame) :_NET_CURRENT_DESKTOP
-                          (list (position (current-desktop frame) (desktops frame)))
-                          :cardinal 32)
-  (dolist (appf (managed-frames frame))
-    (if (frame-visible-in-desktop appf (current-desktop frame))
-        (setf (sheet-enabled-p (frame-top-level-sheet appf)) t)
-        (setf (sheet-enabled-p (frame-top-level-sheet appf)) nil))))
+(defun find-frame-for-input (wm)
+  (a:when-let ((frame (or (find (current-desktop wm) (managed-frames-ordered wm)
+                                :key (lambda (x) (frame-properties x :wm-desktop)))
+                          (wm-panel wm))))
+    (setf (active-frame (port wm)) frame)))
+
+(defmethod (setf current-desktop) :around (value (wm doors-wm))
+  (unless (eq value (current-desktop wm))
+    (setf (desktop-active-p (current-desktop wm)) nil)
+    (call-next-method)
+    (setf (desktop-active-p value) t)
+    (xlib:change-property (xroot wm) :_NET_CURRENT_DESKTOP
+                          (list (position (current-desktop wm) (desktops wm)))
+                                     :cardinal 32)
+    (dolist (appf (managed-frames wm))
+      (if (frame-visible-in-desktop appf (current-desktop wm))
+          (setf (sheet-enabled-p (frame-top-level-sheet appf)) t)
+          (setf (sheet-enabled-p (frame-top-level-sheet appf)) nil)))
+    (find-frame-for-input wm)))
+
 
 ;;;
 (defmethod graft ((frame doors-wm))
@@ -432,7 +441,8 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
 (defmethod note-frame-disabled :after ((fm doors-wm) (frame standard-application-frame))
   (declare (ignore fm))
   (xlib:change-property (xwindow-for-properties frame) :WM_STATE (list +withdrawn-state+) :WM_STATE 32)
-  (ewmh-update-client-list))
+  (ewmh-update-client-list)
+  (find-frame-for-input fm))
 
 (defmethod note-frame-iconified :after ((fm doors-wm) (frame standard-application-frame))
   (declare (ignore fm))

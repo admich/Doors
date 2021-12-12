@@ -105,7 +105,7 @@
                      (xlib::lookup-window dpy window-or-id)
                      window-or-id))
          (sheet (or (getf (xlib:window-plist window) 'sheet) (port-lookup-foreign-sheet (port *wm-application*) window))))
-    (pane-frame sheet)))
+    (when sheet (pane-frame sheet))))
 
 (defmethod enable-frame :around ((frame standard-application-frame))
   (call-next-method)
