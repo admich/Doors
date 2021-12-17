@@ -36,8 +36,8 @@
   (setf *batteries*
         (make-instance 'battery-set
                        :set
-                       (loop for path in (directory "/sys/class/power_supply/*")
-                          when (string= "Battery" (string-trim '(#\Newline) (alexandria:read-file-into-string (merge-pathnames "type" path))))
+                       (loop for path in (directory "/sys/class/power_supply/BAT*")
+                             when (string= "Battery" (string-trim '(#\Newline) (alexandria:read-file-into-string (merge-pathnames "type" path))))
                           collect (make-instance 'battery :path path
                                                  :name (alexandria:lastcar (pathname-directory path)))))))
 
