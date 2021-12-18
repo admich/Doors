@@ -399,12 +399,10 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
                            (width climi::geometry-width)
                            (height climi::geometry-height)) frame
                 (move-and-resize-sheet tls left top width height)
-                (allocate-space tls width height)
                 (setf (frame-properties frame :position) nil))
               (multiple-value-bind (x y w h) (new-geometry position)
                 (save-frame-geometry frame)
                 (move-and-resize-sheet tls x y w h)
-                (allocate-space tls w h)
                 (setf (frame-properties frame :position) position))))))))
 
 (defgeneric fullscreen-frame (frame-manager frame)
@@ -424,13 +422,11 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
                            (top climi::geometry-top)
                            (width climi::geometry-width)
                            (height climi::geometry-height)) frame
-                (move-and-resize-sheet tls left top width height)
-                (allocate-space tls width height))))
+                (move-and-resize-sheet tls left top width height))))
           (progn
             (save-frame-geometry frame)
             (remove-ornaments tls)
             (move-and-resize-sheet tls 0 0 (graft-width graft) (graft-height graft))
-            (allocate-space tls (graft-width graft) (graft-height graft))
             (setf (frame-properties frame :fullscreen) t))))))
 
 (defmethod note-frame-enabled :after ((fm doors-wm) (frame standard-application-frame))
