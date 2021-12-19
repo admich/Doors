@@ -398,11 +398,15 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
                            (top climi::geometry-top)
                            (width climi::geometry-width)
                            (height climi::geometry-height)) frame
-                (move-and-resize-sheet tls left top width height)
+                (dispatch-event
+                 tls (make-instance 'window-configuration-event :sheet tls
+                                    :x left :y top :width width :height height))
                 (setf (frame-properties frame :position) nil))
               (multiple-value-bind (x y w h) (new-geometry position)
                 (save-frame-geometry frame)
-                (move-and-resize-sheet tls x y w h)
+                (dispatch-event
+                 tls (make-instance 'window-configuration-event :sheet tls
+                                    :x x :y y :width w :height h))
                 (setf (frame-properties frame :position) position))))))))
 
 (defgeneric fullscreen-frame (frame-manager frame)
@@ -422,11 +426,15 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
                            (top climi::geometry-top)
                            (width climi::geometry-width)
                            (height climi::geometry-height)) frame
-                (move-and-resize-sheet tls left top width height))))
+                (dispatch-event
+                 tls (make-instance 'window-configuration-event :sheet tls
+                                    :x left :y top :width width :height height)))))
           (progn
             (save-frame-geometry frame)
             (remove-ornaments tls)
-            (move-and-resize-sheet tls 0 0 (graft-width graft) (graft-height graft))
+            (dispatch-event
+                 tls (make-instance 'window-configuration-event :sheet tls
+                                    :x 0 :y 0 :width (graft-width graft) :height (graft-height graft)))
             (setf (frame-properties frame :fullscreen) t))))))
 
 (defmethod note-frame-enabled :after ((fm doors-wm) (frame standard-application-frame))

@@ -66,23 +66,6 @@
     (declare (ignore options))
     (eql port (port frame-manager))))
 
-;;; compared to mcclim when the port is the WM we don't need to do nothing here
-(defmethod handle-event ((sheet top-level-sheet-pane)
-                         (event window-configuration-event))
-  (when (and (null (clim-doors::wm-selection-manager (port sheet)))
-             (eql (sheet-parent sheet) (graft sheet)))
-    (let ((x (window-configuration-event-x event))
-          (y (window-configuration-event-y event))
-          (width (window-configuration-event-width event))
-          (height (window-configuration-event-height event)))
-      (let ((*configuration-event-p* sheet))
-      (%set-sheet-region-and-transformation
-       sheet
-       (make-bounding-rectangle 0 0 width height)
-       ;; negative offsets are handled by the native transformation?
-       (make-translation-transformation x y))))))
-
-
 ;;; top-level-sheet-pane: allow top-level-sheet-pane with multiple child
 (defclass top-level-sheet-pane (top-level-sheet-mixin)
   ()
@@ -122,6 +105,34 @@
      ((fm headless-frame-manager) (frame application-frame))
    (disable-frame frame)
    (alexandria:removef (slot-value fm 'frames) frame))
+
+;;;; Possible PR to make move and resize sheet easier
+(defmethod move-and-resize-sheet ((sheet basic-sheet) x y width height)
+  (move-sheet sheet x y)
+  (resize-sheet sheet width height))
+
+;; in the PR remove also %set-sheet-region-and-transformation and
+#+nil
+(defmethod handle-event ((sheet top-level-sheet-pane)
+                         (event window-configuration-event))
+
+  (let ((x (window-configuration-event-x event))
+        (y (window-configuration-event-y event))
+        (width (window-configuration-event-width event))
+        (height (window-configuration-event-height event)))
+    (let ((*configuration-event-p* sheet))
+      (move-and-resize-sheet sheet x y width height))))
+
+;;; compared to mcclim we never set *configuration-event-p* because
+;;; the actual move and resize is made in application thread
+(defmethod handle-event ((sheet top-level-sheet-pane)
+                         (event window-configuration-event))
+  (let ((x (window-configuration-event-x event))
+        (y (window-configuration-event-y event))
+        (width (window-configuration-event-width event))
+        (height (window-configuration-event-height event)))
+    (move-and-resize-sheet sheet x y width height)))
+
 
 ;;; some keysym
 (in-package :clim-xcommon)
