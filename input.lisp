@@ -118,17 +118,10 @@
                   ,@body)))
     (case event-key
       ((:focus-out)
-       (log:warn "focus out eliminare " window)
-       ;;; check this 
-       (when  (eq :none (xlib:input-focus display))
-         (xlib:set-input-focus display
-                               (clim-clx::window (sheet-mirror (graft *doors-port*)))
-                               :parent)
-;         (ensure-focus-frame)
-         (return-from event-handler (maybe-funcall *wait-function*))))
+       (log:warn "focus out che fare ?" )
+       (return-from event-handler (maybe-funcall *wait-function*)))
       ((:focus-in)
-       (log:warn "focus in" window)
-       ;;; CHECK THIS
+       (log:warn "focus in che fare ?" )
        (return-from event-handler (maybe-funcall *wait-function*)))
       ((:property-notify)
        (when-let ((win (port-aux-xwindow *doors-port*)))

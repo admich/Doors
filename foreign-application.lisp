@@ -76,8 +76,11 @@
 
 (defmethod (setf active-frame) :after ((frame foreign-application) (port doors-port))
   (when-let ((window (foreign-xwindow frame)))
-    (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
-                           window :parent)))
+    (when (member (frame-properties frame :input-model) '(:passive :locally-active))
+      (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
+                             window :parent))
+    (when (member (frame-properties frame :input-model) '(:locally-active :globally-active))
+      (send-client-message (foreign-xwindow frame) :wm_take_focus (update-server-timestamp port)))))
 
 (defmethod foreign-application-frame-top-level ((frame application-frame))
   (clim-extensions:simple-event-loop))
@@ -129,7 +132,9 @@
         :disowned)))
 
 (defun make-foreign-application (window &key (frame-manager (find-frame-manager)))
-  (let ((initial-state (initial-state window)))
+  (let ((initial-state (initial-state window))
+        (input (icccm-input-model window)))
+    (log:warn input)
     (multiple-value-bind (x y) (calculate-initial-position window)
       (let* ((frame (make-application-frame 'foreign-application
                                             :foreign-xwindow window
@@ -141,6 +146,7 @@
                        (ignore-errors (xlib:wm-name window))
                        "NoWin")))
         (setf (xlib:window-event-mask window) *foreign-window-events*)
+        (setf (frame-properties frame :input-model) input)
         (clim-sys:make-process #'(lambda () (run-frame-top-level frame)) :name (format nil  "Foreign App: ~a" name))
         ;; usare semafori invece o server grab
         (sleep 0.5)))))

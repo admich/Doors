@@ -27,7 +27,8 @@
    #:net-wm-name
    #:net-wm-icon-name
    #:icccm-input-model
-   #:set-xwindow-state)
+   #:set-xwindow-state
+   #:send-client-message)
   (:local-nicknames (#:a #:alexandria)))
 
 (defpackage #:clim-doors

@@ -24,7 +24,9 @@
 (defconstant +withdrawn-state+ 0)
 
 (a:define-constant +icccm-atoms+
-  '(:WM_STATE) :test #'equal)
+    '(:WM_STATE
+      :WM_PROTOCOLS
+      :WM_TAKE_FOCUS) :test #'equal)
 
 (a:define-constant  +ewmh-atoms+
   '(;;; Root Window Properties (and Related Messages)
@@ -113,7 +115,7 @@ Locally Active   True        Present
 Globally Active  False       Present      
 "
   (let* ((hints (xlib:wm-hints  window))
-         (input-fields (not (eql :off (xlib:wm-hints-input hints))))
+         (input-fields (or (null hints) (not (eql :off (xlib:wm-hints-input hints)))))
          (wm-take-focus (member :wm_take_focus (xlib:wm-protocols window))))
     (log:warn input-fields wm-take-focus)
     (cond
@@ -121,3 +123,13 @@ Globally Active  False       Present
       ((and input-fields (not wm-take-focus)) :passive)
       ((and input-fields wm-take-focus) :locally-active)
       ((and (not input-fields) wm-take-focus) :globally-active))))
+
+(defun send-client-message (window protocol time &rest data)
+  (let ((dpy (xlib:drawable-display window)))
+   (xlib:send-event window :client-message nil
+                           :window window
+                           :type :WM_PROTOCOLS
+                           :format 32
+                           :propagate-p nil
+                           :data (cons (xlib:find-atom dpy protocol) (cons time data)))))
+
