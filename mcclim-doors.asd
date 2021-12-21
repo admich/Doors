@@ -20,7 +20,8 @@
   :depends-on (#:mcclim-clx
                #:log4cl)
   :components((:file "package")
-              (:file "patch" )
+              (:file "freedesktop-standards")
+              (:file "patch")
               (:file "graft" :depends-on ("package"))
               (:file "port" :depends-on ("package" "graft"))
               (:file "emergency")

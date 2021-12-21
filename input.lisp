@@ -108,7 +108,7 @@
                         request first-keycode count value-mask child atom
                       &allow-other-keys)
   (declare (ignorable first-keycode count child override-redirect-p
-                     send-event-p event-window ))
+                      send-event-p event-window))
   (macrolet ((with-sheet-from-window
                  ((sheet) &body body)
 		       `(when-let ((,sheet (and window
