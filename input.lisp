@@ -109,6 +109,8 @@
                       &allow-other-keys)
   (declare (ignorable first-keycode count child override-redirect-p
                       send-event-p event-window))
+  (when (and time (> time (x-server-timestamp *doors-port*)))
+    (setf (x-server-timestamp *doors-port*) time))
   (macrolet ((with-sheet-from-window
                  ((sheet) &body body)
 		       `(when-let ((,sheet (and window

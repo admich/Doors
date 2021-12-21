@@ -26,7 +26,8 @@
 (a:define-constant +icccm-atoms+
     '(:WM_STATE
       :WM_PROTOCOLS
-      :WM_TAKE_FOCUS) :test #'equal)
+      :WM_TAKE_FOCUS
+      :WM_DELETE_WINDOW) :test #'equal)
 
 (a:define-constant  +ewmh-atoms+
   '(;;; Root Window Properties (and Related Messages)
@@ -124,6 +125,7 @@ Globally Active  False       Present
       ((and input-fields wm-take-focus) :locally-active)
       ((and (not input-fields) wm-take-focus) :globally-active))))
 
+;; icccm 4.2.8
 (defun send-client-message (window protocol time &rest data)
   (let ((dpy (xlib:drawable-display window)))
    (xlib:send-event window :client-message nil
@@ -131,5 +133,5 @@ Globally Active  False       Present
                            :type :WM_PROTOCOLS
                            :format 32
                            :propagate-p nil
-                           :data (cons (xlib:find-atom dpy protocol) (cons time data)))))
+                           :data (cons (xlib:find-atom dpy protocol) (cons (or time 0) data)))))
 

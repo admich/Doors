@@ -80,7 +80,7 @@
       (xlib:set-input-focus  (clim-clx::clx-port-display (port frame))
                              window :parent))
     (when (member (frame-properties frame :input-model) '(:locally-active :globally-active))
-      (send-client-message (foreign-xwindow frame) :wm_take_focus (update-server-timestamp port)))))
+      (send-client-message (foreign-xwindow frame) :wm_take_focus (x-server-timestamp port)))))
 
 (defmethod foreign-application-frame-top-level ((frame application-frame))
   (clim-extensions:simple-event-loop))
@@ -90,12 +90,7 @@
     ;; maybe is necessary also to remap window to root if window is not destroyed
     ;; is necessary to kill the window??
     (port-unregister-foreign-application (port frame) (find-pane-named frame 'main) window)
-    (xlib:send-event window
-                     :client-message nil
-                     :window window
-                     :type :WM_PROTOCOLS
-                     :format 32
-                     :data (list (xlib:intern-atom (clx-port-display (port frame)) :WM_DELETE_WINDOW))))
+    (send-client-message window :WM_DELETE_WINDOW (x-server-timestamp (port frame))))
   (call-next-method))
 
 (defmethod disown-frame :before ((frame-manager doors-frame-manager) (frame foreign-application))
