@@ -23,7 +23,8 @@
   (let ((windows (xlib:query-tree (xroot wm))))
     (loop for win in windows
        unless (or (eq (xlib:window-override-redirect win) :on)
-                  (eq (xlib:window-map-state win) :unmapped)) do
+                  (eq (xlib:window-map-state win) :unmapped)
+                  (getf (xlib:window-plist win) 'sheet)) do
                     (make-foreign-application win :frame-manager wm))))
 
 (defun ewmh-startup (port)
