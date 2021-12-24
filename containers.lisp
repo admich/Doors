@@ -118,3 +118,7 @@
   (declare (ignore width height))
   (setf (climi::pane-space-requirement pane) nil)
   (call-next-method))
+
+(defmethod repaint-sheet :after ((sheet stack-top-level-sheet-pane) (region climi::everywhere-region))
+  (a:when-let ((ornaments (wm-ornaments sheet)))
+    (repaint-sheet ornaments region)))

@@ -19,23 +19,6 @@
 
 (in-package :climi)
 
-(defmethod repaint-sheet :after ((sheet sheet-parent-mixin) region)
-  ;; propagate repaint to unmirrored sheets
-  (labels ((propagate-repaint-1 (sheet region)
-             (dolist (child (sheet-children sheet))
-               (when (and (sheet-enabled-p child)
-                          ;(not (sheet-direct-mirror child))
-                          )
-                 (let ((child-region (region-intersection
-                                      (untransform-region
-                                       (sheet-transformation child)
-                                       region)
-                                      (sheet-region child))))
-                   (unless (eq child-region +nowhere+)
-                     (handle-repaint child child-region)
-                     (propagate-repaint-1 child child-region)))))))
-    (propagate-repaint-1 sheet region)))
-
 ;;; find-frame-manager with options
 (defun find-frame-manager (&rest options &key port &allow-other-keys)
   (declare (special *frame-manager*))
