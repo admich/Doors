@@ -116,6 +116,32 @@
         (height (window-configuration-event-height event)))
     (move-and-resize-sheet sheet x y width height)))
 
+;;; compared to McCLIM the menu take the input focus
+(defmethod menu-choose-from-drawer
+    (menu presentation-type drawer
+     &key x-position y-position cache unique-id id-test cache-value cache-test
+     default-presentation pointer-documentation)
+  (declare (ignore cache unique-id
+                   id-test cache-value cache-test default-presentation))
+  (with-room-for-graphics (menu :first-quadrant nil)
+    (funcall drawer menu presentation-type))
+
+  (adjust-menu-size-and-position menu :x-position x-position
+                                      :y-position y-position)
+  ;; The menu is enabled (make visible) after the size is adjusted.
+  (enable-menu menu)
+  (let ((*pointer-documentation-output* pointer-documentation)
+        (*abort-gestures* (append *menu-choose-abort-gestures*
+                                  *abort-gestures*)))
+    (with-input-focus (menu)
+      (handler-case
+          (with-input-context (`(or ,presentation-type blank-area) :override t)
+              (object type event)
+              (prog1 nil (loop (read-gesture :stream menu)))
+            (blank-area nil)
+            (t (values object event)))
+        (abort-gesture () nil)))))
+
 
 ;;; some keysym
 (in-package :clim-xcommon)
