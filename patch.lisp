@@ -133,14 +133,15 @@
   (let ((*pointer-documentation-output* pointer-documentation)
         (*abort-gestures* (append *menu-choose-abort-gestures*
                                   *abort-gestures*)))
-    (with-input-focus (menu)
-      (handler-case
-          (with-input-context (`(or ,presentation-type blank-area) :override t)
-              (object type event)
-              (prog1 nil (loop (read-gesture :stream menu)))
-            (blank-area nil)
-            (t (values object event)))
-        (abort-gesture () nil)))))
+    (with-pointer-grabbed ((port menu) menu)
+      (with-input-focus (menu)
+        (handler-case
+            (with-input-context (`(or ,presentation-type blank-area) :override t)
+                (object type event)
+                (prog1 nil (loop (read-gesture :stream menu)))
+              (blank-area nil)
+              (t (values object event)))
+          (abort-gesture () nil))))))
 
 ;;; FARE McCLIM PR aggiungere il caso con presentation-type
 (defmethod frame-manager-menu-choose
