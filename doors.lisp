@@ -28,7 +28,7 @@
 
 
 ;;;; Doors wm
-(defclass doors-wm (application-frame doors-frame-manager)
+(defclass doors-wm (standard-application-frame doors-frame-manager)
   ((replace-wm :initarg :replace-wm
                :initform nil
                :reader doors-wm-replace-wm)
@@ -39,10 +39,6 @@
              :accessor desktops)
    (current-desktop :initarg :current-desktop
                     :accessor current-desktop)
-   (command-table
-    :initarg :command-table
-    :initform (find-command-table 'doors-wm)
-    :accessor frame-command-table)
    (port :initarg :port
          :initform nil
          :reader port)
@@ -50,47 +46,13 @@
    (main-graft :initarg :main-graft
                :initform nil
                :accessor main-graft)
-   ;;;  useful standard-application-frame slots
-   (process
-    :accessor climi::frame-process
-    :initform nil)
-   (command-queue
-    :initform (make-instance 'climi::concurrent-event-queue :port nil)
-    :reader climi::frame-command-queue)
-   (event-queue
-    :initarg :frame-event-queue
-    :initform (if climi::*multiprocessing-p*
-                  (make-instance 'climi::concurrent-event-queue)
-                  (make-instance 'climi::simple-event-queue))
-    :accessor climi::frame-event-queue)
-   (reading-command-p
-    :initform nil
-    :accessor climi::frame-reading-command-p)
-   (disabled-commands
-    :accessor climi::disabled-commands
-    :accessor climi::frame-disabled-commands
-    :initarg :disabled-commands
-    :initform nil
-    :documentation "A list of command names that have been disabled in this frame.")
-   (output-pane
-    :initform nil
-    :accessor frame-standard-output
-    :accessor frame-error-output)
-   (input-pane
-    :initform nil
-    :accessor frame-standard-input)
-   (properties
-    :accessor climi::%frame-properties
-    :initarg :properties
-    :initform nil)
    (panel
     :accessor wm-panel
     :initarg :panel
-    :initform nil)
-   (top-level-lambda
-    :initform 'default-frame-top-level
-    :initarg :top-level-lambda
-    :reader climi::frame-top-level-lambda)))
+    :initform nil))
+  (:default-initargs
+   :top-level-lambda 'default-frame-top-level
+   :command-table (find-command-table 'doors-wm)))
 
 (defun xroot (frame-or-wm)
   (clim-clx::window (sheet-mirror (graft frame-or-wm))))
