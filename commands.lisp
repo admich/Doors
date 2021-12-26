@@ -123,6 +123,13 @@
 
 (define-doors-wm-command-with-grabbed-keystroke (com-select-windows :keystroke (#\s :super))
     ()
+  (a:when-let ((frame (menu-choose (managed-frames)
+                                   :presentation-type 'application-frame
+                                   :associated-window (main-graft *wm-application*))))
+    (setf (active-frame (port *wm-application*)) frame)))
+
+(define-doors-wm-command-with-grabbed-keystroke (com-select-windows2 :keystroke (#\S :super))
+    ()
   (uiop:run-program "rofi -show window"))
 
 (define-doors-wm-command-with-grabbed-keystroke (com-quit-doors :name t :keystroke (#\Q :super))

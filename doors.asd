@@ -31,6 +31,7 @@
                      (:file "presentations")
                      (:file "containers" )
                      (:file "desktop")
+                     (:file "menu")
                      (:file "doors")
                      (:file "commands")
                      (:file "panel")
