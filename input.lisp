@@ -59,8 +59,8 @@
   "grant the configure request"
   (with-slots (window x y width height) event
     (xlib:with-state (window)
-      (when x (setf (xlib:drawable-x window) x))
-      (when y (setf (xlib:drawable-y window) y))
+;      (when x (setf (xlib:drawable-x window) x))
+;      (when y (setf (xlib:drawable-y window) y))
       (when width (setf (xlib:drawable-width window) width))
       (when height (setf (xlib:drawable-height window) height)))))
 
