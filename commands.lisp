@@ -125,6 +125,7 @@
     ()
   (a:when-let ((frame (menu-choose (managed-frames)
                                    :presentation-type 'application-frame
+                                   :label "Choose a frame:"
                                    :associated-window (main-graft *wm-application*))))
     (setf (active-frame (port *wm-application*)) frame)))
 

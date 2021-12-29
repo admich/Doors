@@ -116,32 +116,73 @@
         (height (window-configuration-event-height event)))
     (move-and-resize-sheet sheet x y width height)))
 
-;;; compared to McCLIM the menu take the input focus
+;;; compared to McCLIM the menu grab the mouse take the input focus,
+;;; and have keyboard navigation. If the drawer return a list of
+;;; presentations the keyboard navigation is activated. The drawer can
+;;; return as second value the default presentation.
 (defmethod menu-choose-from-drawer
     (menu presentation-type drawer
      &key x-position y-position cache unique-id id-test cache-value cache-test
-     default-presentation pointer-documentation)
+     default-presentation pointer-documentation &aux presentations default)
   (declare (ignore cache unique-id
                    id-test cache-value cache-test default-presentation))
   (with-room-for-graphics (menu :first-quadrant nil)
-    (funcall drawer menu presentation-type))
-
+    (multiple-value-setq  (presentations default)
+      (funcall drawer menu presentation-type)))
+  (when (and presentations (null default))
+    (setf default (first presentations)))
   (adjust-menu-size-and-position menu :x-position x-position
                                       :y-position y-position)
   ;; The menu is enabled (make visible) after the size is adjusted.
   (enable-menu menu)
-  (let ((*pointer-documentation-output* pointer-documentation)
-        (*abort-gestures* (append *menu-choose-abort-gestures*
-                                  *abort-gestures*)))
-    (with-pointer-grabbed ((port menu) menu)
-      (with-input-focus (menu)
-        (handler-case
-            (with-input-context (`(or ,presentation-type blank-area) :override t)
-                (object type event)
-                (prog1 nil (loop (read-gesture :stream menu)))
-              (blank-area nil)
-              (t (values object event)))
-          (abort-gesture () nil))))))
+  (when default
+    (setf (stream-pointer-position menu)
+          (with-bounding-rectangle* (min-x min-y max-x max-y) default
+            (values (+ min-x (floor (- max-x min-x) 2))
+                    (+ min-y (floor (- max-y min-y) 2))))))
+  (with-pointer-grabbed ((port menu) menu)
+    (with-input-focus (menu)
+      (let ((*pointer-documentation-output* pointer-documentation)
+            (*abort-gestures* (append *menu-choose-abort-gestures*
+                                      *abort-gestures*))
+            (*accelerator-gestures* '(:next :prev :return))
+            (ntot (length presentations))
+            (n (position default presentations)))
+        (with-input-context (`(or ,presentation-type blank-area) :override t)
+            (object type event)
+            (labels ((next ()
+                       (when presentations
+                         (highlight-output-record default menu :unhighlight)
+                         (setf n (mod (1+ n) ntot)
+                               default (nth n presentations))))
+                     (prev ()
+                       (when presentations
+                         (highlight-output-record default menu :unhighlight)
+                         (setf n (mod (1- n) ntot)
+                               default (nth n presentations))))
+                     (ret ()
+                       (when presentations
+                         (throw-highlighted-presentation
+                          default *input-context*
+                          (multiple-value-bind (x y) (output-record-position default)
+                            (make-instance 'pointer-button-press-event
+                                           :sheet menu
+                                           :x x :y y
+                                           :modifier-state 0
+                                           :button +pointer-left-button+))))))
+              (loop (handler-case
+                        (prog1 nil
+                          (loop
+                            (highlight-output-record default menu :highlight)
+                            (read-gesture :stream menu)))
+                      (abort-gesture () (return-from menu-choose-from-drawer nil))
+                      (accelerator-gesture (c)
+                        (gesture-case (accelerator-gesture-event c)
+                          (:next (next))
+                          (:prev (prev))
+                          (:return (ret)))))))
+          (blank-area nil)
+          (t (values object event)))))))
 
 ;;; FARE McCLIM PR aggiungere il caso con presentation-type
 (defmethod frame-manager-menu-choose
@@ -197,6 +238,65 @@
               (apply #'frame-manager-menu-choose
                      frame-manager subitems
                      options)))))))
+
+;;; Comapared to McCLIM return the list of presentations and the default presentation
+(defun draw-standard-menu
+    (stream presentation-type items default-item
+     &key item-printer
+     max-width max-height n-rows n-columns x-spacing y-spacing row-wise
+     cell-align-x cell-align-y &aux  presentations default-presentation)
+  (orf item-printer #'print-menu-item)
+  (format-items items
+                :stream stream
+                :printer
+                (lambda (item stream)
+                  (ecase (menu-item-option item :type :item)
+                    (:item
+                     ;; This is a normal item, just output.
+                     (push
+                      (let ((activep (menu-item-option item :active t)))
+                        (with-presentation-type-decoded (name params options)
+                            presentation-type
+                          (let ((*allow-sensitive-inferiors* activep))
+                            (with-text-style
+                                (stream (menu-item-option
+                                         item :style
+                                         '(:sans-serif nil nil)))
+                              (with-output-as-presentation
+                                  (stream
+                                   item
+                                   `((,name ,@params)
+                                     :description ,(getf (menu-item-options item) :documentation)
+                                     ,@options)
+                                   :single-box t)
+                                (funcall item-printer item stream))))))
+                      presentations)
+                     (when (eql default-item item)
+                       (setf default-presentation (first presentations))))
+                    (:label
+                     ;; This is a static label, it should not be
+                     ;; mouse-sensitive, but not grayed out either.
+                     (with-text-style (stream (menu-item-option
+                                               item :style
+                                               '(:sans-serif nil nil)))
+                       (funcall item-printer item stream)))
+                    (:divider
+                     ;; FIXME: Should draw a line instead.
+                     (with-text-style (stream (menu-item-option
+                                               item :style
+                                               '(:sans-serif :italic nil)))
+                       (funcall item-printer item stream)))))
+                :presentation-type nil
+                :x-spacing x-spacing
+                :y-spacing y-spacing
+                :n-columns n-columns
+                :n-rows n-rows
+                :max-width max-width
+                :max-height max-height
+                :cell-align-x cell-align-x
+                :cell-align-y (or cell-align-y :top)
+                :row-wise row-wise)
+  (values (nreverse presentations) default-presentation))
 ;;; some keysym
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)
