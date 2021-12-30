@@ -16,7 +16,7 @@
 ;;;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 ;;;; USA
 (in-package :doors)
-
+;;;; application-frame
 (defgeneric frame-short-name (frame)
   (:method ((frame standard-application-frame))
     (frame-pretty-name frame)))
@@ -26,3 +26,15 @@
 (define-presentation-method present (object (type application-frame) stream view &key)
   (declare (ignore view))
   (format stream " ~a " (frame-short-name object)))
+
+;;;; program-name
+(let (programs)
+  (defun programs-in-path (&optional update)
+    "Return a list of all programs in PATH env variable"
+    (if (and programs (null update))
+        programs
+        (setf programs
+              (loop for dir  in (ppcre:split ":" (uiop:getenv "PATH"))
+               appending (map 'list #'pathname-name (uiop:directory-files (uiop:ensure-directory-pathname dir))))))))
+
+(define-presentation-type-abbreviation program-name () `(member-sequence ,(programs-in-path)))

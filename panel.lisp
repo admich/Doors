@@ -85,28 +85,6 @@
     (object)
   (list object))
 
-(defun programs-in-path ()
-  "Return a list of all programs in PATH env variable"
-  (loop for dir  in (ppcre:split ":" (uiop:getenv "PATH"))
-        appending (map 'list #'pathname-name (uiop:directory-files (uiop:ensure-directory-pathname dir)))))
-
-;;; CHECK THIS
-(define-presentation-type program-name () :inherit-from 'string)
-
-(define-presentation-method presentation-typep (object (type program-name))
-  (and nil (stringp object)
-        (find object  (programs-in-path)
-              :test #'string=)))
-
-;; define-presentation-method presentation-subtypep ?
-
-(define-presentation-method accept ((type program-name) stream (view textual-view)
-                                    &key)
-  (let* ((suggestions (programs-in-path))
-         (obj (completing-from-suggestions (stream)
-                (dolist (x suggestions)
-                 (suggest x x)))))
-      obj))
 
 (define-doors-panel-command (com-run :name t)
     ((command 'program-name :prompt "Command")
