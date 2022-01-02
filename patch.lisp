@@ -165,6 +165,8 @@
                          (throw-highlighted-presentation
                           default *input-context*
                           (multiple-value-bind (x y) (output-record-position default)
+                            (multiple-value-setq (x y)
+                              (transform-position (sheet-native-transformation menu) x y))
                             (make-instance 'pointer-button-press-event
                                            :sheet menu
                                            :x x :y y
