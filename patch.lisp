@@ -115,6 +115,8 @@
         (width (window-configuration-event-width event))
         (height (window-configuration-event-height event)))
     (move-and-resize-sheet sheet x y width height)))
+
+;;;; MENU
 
 ;;; compared to McCLIM the menu grab the mouse take the input focus,
 ;;; and have keyboard navigation. If the drawer return a list of
@@ -185,61 +187,6 @@
                           (:return (ret)))))))
           (blank-area nil)
           (t (values object event)))))))
-
-;;; FARE McCLIM PR aggiungere il caso con presentation-type
-(defmethod frame-manager-menu-choose
-    (frame-manager items    ; XXX specialize on STANDARD-FRAME-MANAGER
-     &rest options
-     &key associated-window printer presentation-type
-     (default-item nil default-item-p)
-     text-style label cache unique-id id-test cache-value cache-test
-     max-width max-height n-rows (n-columns 1) x-spacing y-spacing row-wise
-     cell-align-x cell-align-y (scroll-bars :vertical)
-     ;; We provide pointer documentation by default.
-     (pointer-documentation *pointer-documentation-output*))
-  (flet ((drawer (stream type)
-           (draw-standard-menu stream type items
-                               (if default-item-p
-                                   default-item
-                                   (first items))
-                               :item-printer
-                               (cond
-                                 (presentation-type
-                                  (lambda (menu-item stream)
-                                    (present menu-item presentation-type :stream stream)))
-                                 (printer printer)
-                                 (t #'print-menu-item))
-                               :max-width max-width
-                               :max-height max-height
-                               :n-rows n-rows
-                               :n-columns n-columns
-                               :x-spacing x-spacing
-                               :y-spacing y-spacing
-                               :row-wise row-wise
-                               :cell-align-x cell-align-x
-                               :cell-align-y cell-align-y)))
-    (multiple-value-bind (object event)
-        (with-menu (menu associated-window
-                         :label label
-                         :scroll-bars scroll-bars)
-          (when text-style
-            (setf (medium-text-style menu) text-style))
-          (letf (((stream-default-view menu) +textual-menu-view+))
-            (menu-choose-from-drawer menu (or presentation-type 'menu-item)
-                                     #'drawer
-                                     :cache cache
-                                     :unique-id unique-id
-                                     :id-test id-test
-                                     :cache-value cache-value
-                                     :cache-test cache-test
-                                     :pointer-documentation pointer-documentation)))
-      (unless (null event)              ; Event is NIL if user aborted.
-        (let ((subitems (menu-item-option object :items 'menu-item-no-items)))
-          (if (eq subitems 'menu-item-no-items)
-              (values (menu-item-value object) object event)
-              (apply #'frame-manager-menu-choose
-                     frame-manager subitems
-                     options)))))))
 
 ;;; Comapared to McCLIM return the list of presentations and the default presentation
 (defun draw-standard-menu
