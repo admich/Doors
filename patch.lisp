@@ -247,6 +247,106 @@
                 :row-wise row-wise)
   (values (nreverse presentations) default-presentation))
 ;;; some keysym
+
+;;;; complete-input
+
+;;; This is a good PR for McCLIM: use (second possibility) as object
+;;; in presentation
+(defun possibility-printer (possibility ptype stream)
+  "A default function for printing a possibility. Suitable for
+used as value of `:possibility-printer' in calls to
+`complete-input'"
+  (with-output-as-presentation (stream (second possibility) ptype)
+    (write-string (first possibility) stream)))
+
+;;; good  for MCCLIM PR: change presentation
+(defun print-possibilities (possibilities possibility-printer stream)
+  "Write `possibitilies' to `stream', using
+`possibility-printer'. `Possibilities' must be a list of
+input-completion possibilities. `Stream' must be an input-editing
+stream. Output will be done to its typeout."
+  (clear-typeout stream)
+  (with-input-editor-typeout (stream :erase t)
+    (surrounding-output-with-border (stream :shape :drop-shadow :background +cornsilk1+)
+      (surrounding-output-with-border (stream :shape :rectangle)
+        (format-items possibilities
+                      :stream stream
+                      :printer #'(lambda (possibility stream)
+                                   (funcall possibility-printer
+                                            possibility
+                                            (input-context-type (first *input-context*))
+                                            stream)))))))
+;;; MccCLIM PR:
+;;; 1. remove read possibilies now the presentation are clickable
+(defun complete-input (stream func &key
+                                     partial-completers allow-any-input
+                                     (possibility-printer #'possibility-printer)
+                                     (help-displays-possibilities t))
+  (let ((so-far (make-array 1 :element-type 'character :adjustable t :fill-pointer 0))
+        (*accelerator-gestures* (append *help-gestures*
+                                        *possibilities-gestures*
+                                        *accelerator-gestures*)))
+    (with-input-position (stream)
+      (flet ((insert-input (input)
+               (adjust-array so-far (length input)
+                             :fill-pointer (length input))
+               (replace so-far input)
+               ;; XXX: Relies on non-specified behavior of :rescan.
+               (replace-input stream input :rescan nil)))
+        (multiple-value-bind (object success input)
+            (complete-input-rescan stream func partial-completers
+                                   so-far allow-any-input)
+          (when success
+            (return-from complete-input (values object success input))))
+        (loop
+          (multiple-value-bind (gesture mode)
+              (read-completion-gesture stream
+                                       partial-completers
+                                       help-displays-possibilities)
+            (cond
+              (mode
+               (multiple-value-bind
+                     (input success object nmatches possibilities)
+                   (funcall func (subseq so-far 0) mode)
+                 (when (and (zerop nmatches)
+                            (eq mode :complete-limited)
+                            (complete-gesture-p gesture))
+                   ;; Gesture is both a partial completer and a
+                   ;; delimiter e.g., #\space.  If no partial match,
+                   ;; try again with a total match.
+                   (setf (values input success object nmatches possibilities)
+                         (funcall func (subseq so-far 0) :complete))
+                   (setf mode :complete))
+                 ;; Preserve the delimiter
+                 (when (and success (eq mode :complete))
+                   (unread-gesture gesture :stream stream))
+                 ;; Get completion from menu
+                 (when *trace-complete-input*
+                   (format *trace-output* "nmatches = ~A, mode = ~A~%"
+                           nmatches mode))
+                 (when (and (> nmatches 0) (eq mode :possibilities))
+                   (print-possibilities possibilities possibility-printer stream))
+                 (unless (and (eq mode :complete) (not success))
+                   (if (> nmatches 0)
+                       (insert-input input)
+                       (beep)))
+                 (cond ((and success (eq mode :complete))
+                        (return-from complete-input
+                          (values object success input)))
+                       ((activation-gesture-p gesture)
+                        (if allow-any-input
+                            (return-from complete-input
+                              (values nil t (subseq so-far 0)))
+                            (error 'simple-completion-error
+                                   :format-control "Input ~S does not match"
+                                   :format-arguments (list so-far)
+                                   :input-so-far so-far))))))
+              ((null gesture) ; e.g. end-of-input if STREAM is a string stream
+               (return-from complete-input (values nil nil so-far)))
+              (t
+               (vector-push-extend gesture so-far)))))))))
+
+;;; keyboard
 (in-package :clim-xcommon)
 (define-keysym :XF86-Audio-Lower-Volume #x1008FF11)
 (define-keysym :XF86-Audio-Mute #x1008FF12)
