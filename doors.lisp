@@ -17,8 +17,12 @@
 
 (in-package #:doors)
 
+#|
+;; Xephyr -br -ac -noreset -screen 1280x800 :1
+(setf clim:*default-server-path* (list :doors :host "" :display-id 1))
+(doors:doors :new-process t :port (clim:find-port :server-path (list :doors :host "" :display-id 1)))
+|#
 
-;; Xephyr -br -ac -noreset -screen 1920x1080 :1
 ;; (setf clim:*default-server-path* (list :doors :mirroring :single))
 (setf clim:*default-server-path* (list :doors))
 
