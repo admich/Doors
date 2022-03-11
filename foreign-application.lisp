@@ -124,7 +124,7 @@
     (if (and hints
              (eql :iconic (xlib:wm-hints-initial-state hints)))
         :shrunk
-        :disowned)))
+        :enabled)))
 
 (defun make-foreign-application (window &key (frame-manager (find-frame-manager)))
   (let ((initial-state (initial-state window))
@@ -134,7 +134,7 @@
       (let* ((frame (make-application-frame 'foreign-application
                                             :foreign-xwindow window
                                             :left x
-                                            :state initial-state
+                                            ;; :state initial-state ; some problem with this
                                             :top y
                                             :frame-manager frame-manager))
              (name (or (ignore-errors (doors::net-wm-name window))
