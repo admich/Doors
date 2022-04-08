@@ -116,8 +116,12 @@
 (defun calculate-initial-position (window)
   ;; for the moment I don't check win-gravity. In this way I assume always north-west
   ;; and for the moment I don't check hints at all
-  (values  (xlib:drawable-x window)
-           (xlib:drawable-y window)))
+  (let* ((hints (xlib:wm-normal-hints window))
+         (hx (when hints (xlib:wm-size-hints-x hints)))
+         (hy (when hints (xlib:wm-size-hints-y hints)))
+    	 (x (or hx (ignore-errors (xlib:drawable-x window))))
+    	 (y (or hy (ignore-errors (xlib:drawable-y window)))))
+  (values  x y)))
 
 (defun initial-state (window)
   (let ((hints (xlib:wm-hints window)))
