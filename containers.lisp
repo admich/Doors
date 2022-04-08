@@ -92,8 +92,10 @@
 
 ;; stack container
 (defclass stack-top-level-sheet-pane (climi::top-level-sheet-pane climi::vbox-pane)
-  ((ornaments :accessor wm-ornaments))
-  (:documentation "A frame container with ornaments for stack frame manager"))
+  ((ornaments :accessor wm-ornaments)
+   (border :accessor border :initform 2))
+  (:documentation "A frame container with ornaments for stack frame manager")
+  (:default-initargs :background +blue+))
 
 (defmethod initialize-instance :after ((pane stack-top-level-sheet-pane) &rest args)
   (declare (ignore args))
@@ -114,10 +116,34 @@
   (sheet-adopt-child tls (wm-ornaments tls))
   (reorder-sheets tls (reverse (sheet-children tls))))
 
-(defmethod compose-space :around ((pane stack-top-level-sheet-pane) &key width height)
-  (declare (ignore width height))
+(defmethod compose-space :around ((pane stack-top-level-sheet-pane) &key (width 100) (height 100))
   (setf (climi::pane-space-requirement pane) nil)
-  (call-next-method))
+  (let* ((border (border pane))
+         (delta (* 2 border))
+         (width (max (- width delta) delta))
+         (height (max (- height delta) delta))
+         (sr (call-next-method pane :width width :height height)))
+      (make-space-requirement
+       :width (+ delta (space-requirement-width sr))
+       :height (+ delta (space-requirement-height sr))
+       :min-width (+ delta (space-requirement-min-width sr))
+       :min-height (+ delta (space-requirement-min-height sr))
+       :max-width (+ delta (space-requirement-max-width sr))
+       :max-height (+ delta (space-requirement-max-height sr)))))
+
+(defmethod climi::box-layout-mixin/vertically-allocate-space ((pane stack-top-level-sheet-pane) width height)
+  (let* ((border (* 2 (border pane)))
+         (w (max (- width border) border))
+         (h (max (- height border) border)))
+    (call-next-method pane w h)))
+
+(defmethod allocate-space :around ((pane stack-top-level-sheet-pane) width height)
+  (call-next-method)
+  (let ((border (border pane)))
+    (dolist (child (sheet-children pane))
+      (let ((tr (sheet-transformation child)))
+        (multiple-value-bind (old-x old-y) (transform-position tr 0 0)
+          (move-sheet child (+ old-x border) (+ old-y border)))))))
 
 (defmethod repaint-sheet :after ((sheet stack-top-level-sheet-pane) (region climi::everywhere-region))
   (a:when-let ((ornaments (wm-ornaments sheet)))
