@@ -116,6 +116,14 @@
   (sheet-adopt-child tls (wm-ornaments tls))
   (reorder-sheets tls (reverse (sheet-children tls))))
 
+(defun tls-fullscreen-p (tls)
+  (= 1 (length (sheet-children tls))))
+
+(defmethod border :around ((pane stack-top-level-sheet-pane))
+  (if (tls-fullscreen-p pane)
+      0
+      (call-next-method)))
+
 (defmethod compose-space :around ((pane stack-top-level-sheet-pane) &key (width 100) (height 100))
   (setf (climi::pane-space-requirement pane) nil)
   (let* ((border (border pane))
@@ -131,19 +139,28 @@
        :max-width (+ delta (space-requirement-max-width sr))
        :max-height (+ delta (space-requirement-max-height sr)))))
 
-(defmethod climi::box-layout-mixin/vertically-allocate-space ((pane stack-top-level-sheet-pane) width height)
-  (let* ((border (* 2 (border pane)))
-         (w (max (- width border) border))
-         (h (max (- height border) border)))
-    (call-next-method pane w h)))
-
-(defmethod allocate-space :around ((pane stack-top-level-sheet-pane) width height)
-  (call-next-method)
-  (let ((border (border pane)))
-    (dolist (child (sheet-children pane))
-      (let ((tr (sheet-transformation child)))
-        (multiple-value-bind (old-x old-y) (transform-position tr 0 0)
-          (move-sheet child (+ old-x border) (+ old-y border)))))))
+(defmethod allocate-space ((pane stack-top-level-sheet-pane) width height)
+  (resize-sheet pane width height)
+  (let* ((border (border pane))
+         (border2 (* 2 border))
+         (real-width (max (- width border2) border2))
+         (real-height (max (- height border2) border2)))
+    (multiple-value-bind (heights widths)
+        (climi::box-layout-mixin/vertically-allocate-space-aux* pane real-width real-height)
+      (loop with spacing = (slot-value pane 'climi::y-spacing)
+            with y = 0
+            with align-x = (climi::pane-align-x pane)
+            with align-y = (climi::pane-align-y pane)
+            for child in (climi::box-layout-mixin-clients pane)
+            for height in heights
+            for width in widths
+            do (a:when-let ((pane (climi::box-client-pane child)))
+                 (climi::layout-child pane align-x align-y
+                                      border y
+                                      real-width
+                                      height)
+                 (incf y spacing))
+               (incf y height)))))
 
 (defmethod repaint-sheet :after ((sheet stack-top-level-sheet-pane) (region climi::everywhere-region))
   (a:when-let ((ornaments (wm-ornaments sheet)))
