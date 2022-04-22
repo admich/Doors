@@ -22,6 +22,34 @@
 (defparameter *browser* '("firefox" "Navigator"))
 (defparameter *emacs* '("emacs" "emacs"))
 
+;;;; keystroke second-map
+(define-command (com-abort-second-map :command-table second-map :name t :keystroke (#\c :control))
+       ()
+  nil)
+
+(define-doors-wm-command-with-grabbed-keystroke (com-second-map :keystroke (#\a :super)) 
+    ()
+  (let* ((old-table (frame-command-table *application-frame*))
+         (table (find-command-table 'second-map))
+         (root-window (clim-clx::window (sheet-mirror (find-graft))))
+         (port (port *application-frame*))
+         (dpy (clim-clx::clx-port-display port))
+         (cursor (gethash :busy (clim-clx::clx-port-cursor-table port))))
+    (unwind-protect
+         (progn
+           ;;;; here I use directly xlib to grab pointer and keyboard,
+           ;;;; maybe its better to use some McCLIM functions/macro
+           (xlib:grab-pointer root-window nil :owner-p nil :cursor cursor)
+           (xlib:grab-keyboard root-window :owner-p nil)
+           (setf (frame-command-table *application-frame*) table) ;; necessary because the commands must be enabled in frame
+           (let ((command (read-frame-command *application-frame*)))
+             (execute-frame-command *application-frame* command)))
+      (setf (frame-command-table *application-frame*) old-table)
+      (xlib:ungrab-pointer dpy)
+      (xlib:ungrab-keyboard dpy))))
+
+;;; applications
+
 (defun find-foreign-application (win-class)
   (loop for frame in (managed-frames)
         when (and (typep frame 'clim-doors:foreign-application)
@@ -29,33 +57,34 @@
           collect frame))
 
 (defmacro define-run-or-raise (name sh-command win-class keystroke)
-  `(define-doors-wm-command-with-grabbed-keystroke (,name :name t :keystroke ,keystroke)
+  `(define-command (,name :name t :command-table second-map :keystroke ,keystroke)
        ()
      (alexandria:if-let (frames (find-foreign-application ,win-class))
        (setf (active-frame (port *application-frame*)) (car frames))
        (uiop:launch-program ,sh-command))))
 
-(define-run-or-raise com-emacs (first *emacs*) (second *emacs*) (#\E :super))
+(define-run-or-raise com-emacs (first *emacs*) (second *emacs*) (#\e :super))
 
 (define-run-or-raise com-browser (first *browser*) (second *browser*) (#\b :super))
 
 (define-run-or-raise com-terminal (first *terminal*) (second *terminal*) (#\t :super))
 
-(define-doors-wm-command-with-grabbed-keystroke (com-listener :name t :keystroke (#\l :super))
+(define-command (com-listener :name t :command-table second-map :keystroke (#\l :super))
     ()
   (let ((frame (car (member "Listener" (managed-frames) :key  #'frame-pretty-name  :test #'string=))))
     (if frame
         (setf (active-frame (port *application-frame*)) frame)
         (clim-listener:run-listener :width 1000 :height 600 :new-process t))))
 
-(define-doors-wm-command-with-grabbed-keystroke (com-new-listener :name t :keystroke (#\L :super))
+(define-command (com-new-listener :name t :command-table second-map :keystroke (#\L :super))
     ()
   (clim-listener:run-listener :width 1000 :height 600 :new-process t))
 
-(define-doors-wm-command-with-grabbed-keystroke (com-editor :name t :keystroke (#\e :super))
+(define-command (com-editor :name t :command-table second-map :keystroke (#\E :super))
     ()
   (find-application-frame 'climacs::climacs))
 
+;;;; frame management
 (define-doors-wm-command-with-grabbed-keystroke (com-next-frame :name t :keystroke (#\n :super))
     ()
   (alexandria:when-let ((frames (desktop-frames (current-desktop *wm-application*))))
