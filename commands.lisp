@@ -1,5 +1,5 @@
 ;;;; Doors a window manager based on McCLIM.
-;;;; Copyright (C) 2021  Andrea De Michele
+;;;; Copyright (C) 2021-2022  Andrea De Michele
 ;;;;
 ;;;; This library is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -112,6 +112,27 @@
   (define-move-frame-command :left)
   (define-move-frame-command :right)
   (define-move-frame-command :maximized (#\m :super)))
+
+(defun frame-position (frame)
+  (let ((tls (frame-top-level-sheet frame)))
+    (transform-position (sheet-delta-transformation tls (graft frame)) 0 0)))
+
+(macrolet ((define-select-frame-command (direction coordinate test)
+             (let ((com-name (a:symbolicate "COM-SELECT-FRAME-" direction)))
+               `(define-doors-wm-command-with-grabbed-keystroke (,com-name :name t :keystroke (,direction :super :control))
+                    ()
+                  (let* ((aframe (active-frame (port *application-frame*)))
+                         (oframes (loop :for frame :in (desktop-frames (current-desktop *wm-application*))
+                                        :when (,test (,coordinate frame) (,coordinate aframe))
+                                          :collect frame)))
+                    (a:when-let ((new-active (loop :for frame :in (managed-frames-ordered *wm-application*)
+                                                   :when (member frame oframes)
+                                                     :return frame)))
+                      (setf (active-frame (port *application-frame*)) new-active)))))))
+  (define-select-frame-command :left frame-position <)
+  (define-select-frame-command :right frame-position >)
+  (define-select-frame-command :up (lambda (x) (nth-value 1 (frame-position x))) <)
+  (define-select-frame-command :down (lambda (x) (nth-value 1 (frame-position x))) >))
 
 (define-doors-wm-command-with-grabbed-keystroke (com-dmenu :keystroke (#\Return :super))
     ()
