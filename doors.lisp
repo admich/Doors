@@ -433,7 +433,8 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
 
 
 ;;; Command table
-(define-command-table doors-wm)
+(define-command-table second-map :inherit-from nil)
+(define-command-table doors-wm :inherit-from (second-map global-command-table))
 
 ;; check for variable capture
 (defmacro define-doors-wm-command-with-grabbed-keystroke (name-and-options arguments &rest body)
