@@ -57,17 +57,22 @@
           collect frame))
 
 (defmacro define-run-or-raise (name sh-command win-class keystroke)
-  `(define-command (,name :name t :command-table second-map :keystroke ,keystroke)
-       ()
-     (alexandria:if-let (frames (find-foreign-application ,win-class))
-       (setf (active-frame (port *application-frame*)) (car frames))
-       (uiop:launch-program ,sh-command))))
+  (let ((command-name (a:symbolicate "COM-" name))
+        (gesture-name (a:symbolicate "KEYSTROKE-" name)))
+    `(progn
+       (define-gesture-name ,gesture-name :keyboard ,keystroke)
+       (define-gesture-name ,gesture-name :keyboard (,keystroke :super) :unique nil)
+       (define-command (,name :name t :command-table second-map :keystroke ,gesture-name)
+           ()
+         (alexandria:if-let (frames (find-foreign-application ,win-class))
+           (setf (active-frame (port *application-frame*)) (car frames))
+           (uiop:launch-program ,sh-command))))))
 
-(define-run-or-raise com-emacs (first *emacs*) (second *emacs*) (#\e :super))
+(define-run-or-raise com-emacs (first *emacs*) (second *emacs*) #\e)
 
-(define-run-or-raise com-browser (first *browser*) (second *browser*) (#\b :super))
+(define-run-or-raise com-browser (first *browser*) (second *browser*) #\b)
 
-(define-run-or-raise com-terminal (first *terminal*) (second *terminal*) (#\t :super))
+(define-run-or-raise com-terminal (first *terminal*) (second *terminal*) #\t)
 
 (define-command (com-listener :name t :command-table second-map :keystroke (#\l :super))
     ()
