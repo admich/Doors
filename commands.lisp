@@ -74,18 +74,18 @@
 
 (define-run-or-raise com-terminal (first *terminal*) (second *terminal*) #\t)
 
-(define-command (com-listener :name t :command-table second-map :keystroke (#\l :super))
+(define-command (com-listener :name t :command-table second-map :keystroke #\l)
     ()
   (let ((frame (car (member "Listener" (managed-frames) :key  #'frame-pretty-name  :test #'string=))))
     (if frame
         (setf (active-frame (port *application-frame*)) frame)
         (clim-listener:run-listener :width 1000 :height 600 :new-process t))))
 
-(define-command (com-new-listener :name t :command-table second-map :keystroke (#\L :super))
+(define-command (com-new-listener :name t :command-table second-map :keystroke #\L)
     ()
   (clim-listener:run-listener :width 1000 :height 600 :new-process t))
 
-(define-command (com-editor :name t :command-table second-map :keystroke (#\E :super))
+(define-command (com-editor :name t :command-table second-map :keystroke #\E)
     ()
   (find-application-frame 'climacs::climacs))
 
