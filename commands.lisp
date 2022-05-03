@@ -22,73 +22,6 @@
 (defparameter *browser* '("firefox" "Navigator"))
 (defparameter *emacs* '("emacs" "emacs"))
 
-;;;; keystroke second-map
-(define-command (com-abort-second-map :command-table second-map :name t :keystroke (#\c :control))
-       ()
-  nil)
-
-(define-doors-wm-command-with-grabbed-keystroke (com-second-map :keystroke (#\a :super)) 
-    ()
-  (let* ((old-table (frame-command-table *application-frame*))
-         (table (find-command-table 'second-map))
-         (root-window (clim-clx::window (sheet-mirror (find-graft))))
-         (port (port *application-frame*))
-         (dpy (clim-clx::clx-port-display port))
-         (cursor (gethash :busy (clim-clx::clx-port-cursor-table port))))
-    (unwind-protect
-         (progn
-           ;;;; here I use directly xlib to grab pointer and keyboard,
-           ;;;; maybe its better to use some McCLIM functions/macro
-           (xlib:grab-pointer root-window nil :owner-p nil :cursor cursor)
-           (xlib:grab-keyboard root-window :owner-p nil)
-           (setf (frame-command-table *application-frame*) table) ;; necessary because the commands must be enabled in frame
-           (let ((command (read-frame-command *application-frame*)))
-             (execute-frame-command *application-frame* command)))
-      (setf (frame-command-table *application-frame*) old-table)
-      (xlib:ungrab-pointer dpy)
-      (xlib:ungrab-keyboard dpy))))
-
-;;; applications
-
-(defun find-foreign-application (win-class)
-  (loop for frame in (managed-frames)
-        when (and (typep frame 'clim-doors:foreign-application)
-                  (string= win-class (xlib:get-wm-class (clim-doors:foreign-xwindow frame))))
-          collect frame))
-
-(defmacro define-run-or-raise (name sh-command win-class keystroke)
-  (let ((command-name (a:symbolicate "COM-" name))
-        (gesture-name (a:symbolicate "KEYSTROKE-" name)))
-    `(progn
-       (define-gesture-name ,gesture-name :keyboard ,keystroke)
-       (define-gesture-name ,gesture-name :keyboard (,keystroke :super) :unique nil)
-       (define-command (,name :name t :command-table second-map :keystroke ,gesture-name)
-           ()
-         (alexandria:if-let (frames (find-foreign-application ,win-class))
-           (setf (active-frame (port *application-frame*)) (car frames))
-           (uiop:launch-program ,sh-command))))))
-
-(define-run-or-raise com-emacs (first *emacs*) (second *emacs*) #\e)
-
-(define-run-or-raise com-browser (first *browser*) (second *browser*) #\b)
-
-(define-run-or-raise com-terminal (first *terminal*) (second *terminal*) #\t)
-
-(define-command (com-listener :name t :command-table second-map :keystroke #\l)
-    ()
-  (let ((frame (car (member "Listener" (managed-frames) :key  #'frame-pretty-name  :test #'string=))))
-    (if frame
-        (setf (active-frame (port *application-frame*)) frame)
-        (clim-listener:run-listener :width 1000 :height 600 :new-process t))))
-
-(define-command (com-new-listener :name t :command-table second-map :keystroke #\L)
-    ()
-  (clim-listener:run-listener :width 1000 :height 600 :new-process t))
-
-(define-command (com-editor :name t :command-table second-map :keystroke #\E)
-    ()
-  (find-application-frame 'climacs::climacs))
-
 ;;;; frame management
 (define-doors-wm-command-with-grabbed-keystroke (com-next-frame :name t :keystroke (#\n :super))
     ()
@@ -280,3 +213,84 @@
         (setf (current-desktop *application-frame*) new-desk))
       (a:removef desktops desktop)
       (renumber-desktops *application-frame*))))
+
+;;;; keystroke second-map
+(define-command-table second-map :inherit-from (doors-wm))
+
+(define-gesture-name abort-second-map :keyboard (#\c :control))
+(define-gesture-name abort-second-map :keyboard (#\g :control) :unique nil)
+(define-gesture-name abort-second-map :keyboard :escape :unique nil)
+
+(define-command (com-abort-second-map :command-table second-map :name t :keystroke abort-second-map)
+       ()
+  nil)
+
+(add-keystroke-to-command-table 'second-map '(#\a :super) :command 'com-last-frame)
+
+(define-doors-wm-command-with-grabbed-keystroke (com-second-map :keystroke (#\a :super)) 
+    ()
+  (let* ((old-table (frame-command-table *application-frame*))
+         (table (find-command-table 'second-map))
+         (root-window (clim-clx::window (sheet-mirror (find-graft))))
+         (port (port *application-frame*))
+         (dpy (clim-clx::clx-port-display port))
+         (cursor (gethash :busy (clim-clx::clx-port-cursor-table port))))
+    (unwind-protect
+         (progn
+           ;;;; here I use directly xlib to grab pointer and keyboard,
+           ;;;; maybe its better to use some McCLIM functions/macro
+           (xlib:grab-pointer root-window nil :owner-p nil :cursor cursor)
+           (xlib:grab-keyboard root-window :owner-p nil)
+           (setf (frame-command-table *application-frame*) table) ;; necessary because the commands must be enabled in frame
+           (let ((command (read-frame-command *application-frame*)))
+             (execute-frame-command *application-frame* command)))
+      (setf (frame-command-table *application-frame*) old-table)
+      (xlib:ungrab-pointer dpy)
+      (xlib:ungrab-keyboard dpy))))
+
+(defun find-foreign-application (win-class)
+  (loop for frame in (managed-frames)
+        when (and (typep frame 'clim-doors:foreign-application)
+                  (string= win-class (xlib:get-wm-class (clim-doors:foreign-xwindow frame))))
+          collect frame))
+
+(defmacro define-run-or-raise (name sh-command win-class keystroke)
+  (let ((command-name (a:symbolicate "COM-" name))
+        (gesture-name (a:symbolicate "KEYSTROKE-" name)))
+    `(progn
+       (define-gesture-name ,gesture-name :keyboard ,keystroke)
+       (define-gesture-name ,gesture-name :keyboard (,keystroke :super) :unique nil)
+       (define-command (,name :name t :command-table doors-wm)
+           ()
+         (alexandria:if-let (frames (find-foreign-application ,win-class))
+           (setf (active-frame (port *application-frame*)) (car frames))
+           (uiop:launch-program ,sh-command)))
+       (add-keystroke-to-command-table 'second-map ',gesture-name :command ',name))))
+
+(define-run-or-raise com-emacs (first *emacs*) (second *emacs*) #\e)
+
+(define-run-or-raise com-browser (first *browser*) (second *browser*) #\b)
+
+(define-run-or-raise com-terminal (first *terminal*) (second *terminal*) #\t)
+
+(defmacro define-command-with-second-map-keystroke (name keystroke &body body)
+  (let ((gesture-name (a:symbolicate "KEYSTROKE-" name)))
+    `(progn
+       (define-gesture-name ,gesture-name :keyboard ,keystroke)
+       (define-gesture-name ,gesture-name :keyboard (,keystroke :super) :unique nil)
+       (define-command (,name :name t :command-table doors-wm)
+           ()
+         ,@body)
+       (add-keystroke-to-command-table 'second-map ',gesture-name :command ',name))))
+
+(define-command-with-second-map-keystroke com-listener #\l
+  (let ((frame (car (member "Listener" (managed-frames) :key  #'frame-pretty-name  :test #'string=))))
+    (if frame
+        (setf (active-frame (port *application-frame*)) frame)
+        (clim-listener:run-listener :width 1000 :height 600 :new-process t))))
+
+(define-command-with-second-map-keystroke com-new-listener #\L
+  (clim-listener:run-listener :width 1000 :height 600 :new-process t))
+
+(define-command-with-second-map-keystroke com-editor #\E
+  (find-application-frame 'climacs::climacs))
