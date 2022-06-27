@@ -67,9 +67,14 @@
     (setf (pane-space-requirement pane)
           (compose-space pane)))
   (when-let ((child (sheet-child pane)))
-    (allocate-space child
-                    (clamp width  (sr-min-width pane)  (sr-max-width pane))
-                    (clamp height (sr-min-height pane) (sr-max-height pane)))))
+    (let ((req (pane-space-requirement pane)))
+      (allocate-space child
+                      (clamp width
+                             (space-requirement-min-width req)
+                             (space-requirement-max-width req))
+                      (clamp height
+                             (space-requirement-min-height req)
+                             (space-requirement-max-height req))))))
 
 (defmethod allocate-space ((pane top-level-sheet-pane) width height)
  (call-next-method))

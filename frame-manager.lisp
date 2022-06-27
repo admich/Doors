@@ -135,18 +135,11 @@
       (multiple-value-bind (w h x y) (climi::frame-geometry* frame)
         (declare (ignore w h))
         (move-sheet top-level-sheet (or x 0) (or y 0)))
-      ;; :structure-notify events were not yet turned on, turn them
-      ;; on now, so that we get informed about the windows position
-      ;; (and possibly size), when the window gets maped.
-      (setf (xlib:window-event-mask window)
-            (logior (xlib:window-event-mask window)
-                    (xlib:make-event-mask :structure-notify)))
       ;; Care for calling-frame, be careful not to trip on missing bits
-      (let* ((calling-frame (frame-calling-frame frame))
-             (tls (and calling-frame (frame-top-level-sheet calling-frame)))
-             (calling-mirror (and tls (sheet-mirror tls))))
-        (when calling-mirror
-          (setf (xlib:transient-for window) (clim-clx::window calling-mirror))))
+      (a:when-let* ((calling-frame (frame-calling-frame frame))
+                    (tls (frame-top-level-sheet calling-frame))
+                    (calling-mirror (sheet-mirror tls)))
+          (setf (xlib:transient-for window) (clim-clx::window calling-mirror)))
       ;;
       (when (sheet-enabled-p sheet)
         (xlib:map-window window)))))
