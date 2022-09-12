@@ -123,6 +123,13 @@
 
 ;;;; MENU
 
+(define-gesture-name :kbd-throw-presentation :keyboard (:return :meta) :unique nil)
+(define-gesture-name :kbd-throw-presentation :keyboard :return :unique nil)
+(define-gesture-name :kbd-prev :keyboard (#\p :meta) :unique nil)
+(define-gesture-name :kbd-prev :keyboard :up :unique nil)
+(define-gesture-name :kbd-next :keyboard (#\n :meta) :unique nil)
+(define-gesture-name :kbd-next :keyboard :down :unique nil)
+
 ;;; compared to McCLIM the menu grab the mouse take the input focus,
 ;;; and have keyboard navigation. If the drawer return a list of
 ;;; presentations the keyboard navigation is activated. The drawer can
@@ -152,7 +159,7 @@
       (let ((*pointer-documentation-output* pointer-documentation)
             (*abort-gestures* (append *menu-choose-abort-gestures*
                                       *abort-gestures*))
-            (*accelerator-gestures* '(:next :prev :return))
+            (*accelerator-gestures* '(:kbd-next :kbd-prev :kbd-throw-presentation))
             (ntot (length presentations))
             (n (position default presentations)))
         (with-input-context (`(or ,presentation-type blank-area) :override t)
@@ -187,9 +194,9 @@
                       (abort-gesture () (return-from menu-choose-from-drawer nil))
                       (accelerator-gesture (c)
                         (gesture-case (accelerator-gesture-event c)
-                          (:next (next))
-                          (:prev (prev))
-                          (:return (ret)))))))
+                          (:kbd-next (next))
+                          (:kbd-prev (prev))
+                          (:kbd-throw-presentation (ret)))))))
           (blank-area nil)
           (t (values object event)))))))
 
