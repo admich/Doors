@@ -140,7 +140,6 @@
        :max-height (+ delta (space-requirement-max-height sr)))))
 
 (defmethod allocate-space ((pane stack-top-level-sheet-pane) width height)
-  (resize-sheet pane width height)
   (let* ((border (border pane))
          (border2 (* 2 border))
          (real-width (max (- width border2) border2))
