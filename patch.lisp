@@ -99,27 +99,6 @@
   (move-sheet sheet x y)
   (resize-sheet sheet width height))
 
-;; in the PR remove also %set-sheet-region-and-transformation and
-#+nil
-(defmethod handle-event ((sheet top-level-sheet-pane)
-                         (event window-configuration-event))
-
-  (let ((x (window-configuration-event-x event))
-        (y (window-configuration-event-y event))
-        (width (window-configuration-event-width event))
-        (height (window-configuration-event-height event)))
-    (let ((*configuration-event-p* sheet))
-      (move-and-resize-sheet sheet x y width height))))
-
-;;; compared to mcclim we never set *configuration-event-p* because
-;;; the actual move and resize is made in application thread
-(defmethod handle-event ((sheet top-level-sheet-pane)
-                         (event window-configuration-event))
-  (let ((x (window-configuration-event-x event))
-        (y (window-configuration-event-y event))
-        (width (window-configuration-event-width event))
-        (height (window-configuration-event-height event)))
-    (move-and-resize-sheet sheet x y width height)))
 
 ;;;; MENU
 
@@ -357,6 +336,8 @@ stream. Output will be done to its typeout."
                (return-from complete-input (values nil nil so-far)))
               (t
                (vector-push-extend gesture so-far)))))))))
+
+
 
 ;;; keyboard
 (in-package :clim-xcommon)

@@ -360,19 +360,15 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
       (unless (frame-properties frame :fullscreen)
         (let* ((tls (frame-top-level-sheet frame)))
           (if (and toggle (eq position (frame-properties frame :position)))
-              (with-slots ((left climi::geometry-left)
-                           (top climi::geometry-top)
-                           (width climi::geometry-width)
-                           (height climi::geometry-height)) frame
-                (dispatch-event
-                 tls (make-instance 'window-configuration-event :sheet tls
-                                    :x left :y top :width width :height height))
+              (with-slots ((x climi::geometry-left)
+                           (y climi::geometry-top)
+                           (w climi::geometry-width)
+                           (h climi::geometry-height)) frame
+                (move-and-resize-sheet tls x y w h)
                 (setf (frame-properties frame :position) nil))
               (multiple-value-bind (x y w h) (new-geometry position)
                 (save-frame-geometry frame)
-                (dispatch-event
-                 tls (make-instance 'window-configuration-event :sheet tls
-                                    :x x :y y :width w :height h))
+                (move-and-resize-sheet tls x y w h)
                 (setf (frame-properties frame :position) position))))))))
 
 (defgeneric fullscreen-frame (frame-manager frame)
@@ -388,19 +384,15 @@ Position can be :UP :DOWN :LEFT :RIGHT :MAXIMIZED")
             (setf (frame-properties frame :fullscreen) nil)
             (a:if-let ((position (frame-properties frame :position)))
               (move-frame frame-manager frame position nil)
-              (with-slots ((left climi::geometry-left)
-                           (top climi::geometry-top)
-                           (width climi::geometry-width)
-                           (height climi::geometry-height)) frame
-                (dispatch-event
-                 tls (make-instance 'window-configuration-event :sheet tls
-                                    :x left :y top :width width :height height)))))
+              (with-slots ((x climi::geometry-left)
+                           (y climi::geometry-top)
+                           (w climi::geometry-width)
+                           (h climi::geometry-height)) frame
+                (move-and-resize-sheet tls x y w h))))
           (progn
             (save-frame-geometry frame)
             (remove-ornaments tls)
-            (dispatch-event
-                 tls (make-instance 'window-configuration-event :sheet tls
-                                    :x 0 :y 0 :width (graft-width graft) :height (graft-height graft)))
+            (move-and-resize-sheet tls 0 0 (graft-width graft) (graft-height graft))
             (setf (frame-properties frame :fullscreen) t))))))
 
 (defmethod note-frame-enabled :after ((fm doors-wm) (frame standard-application-frame))
