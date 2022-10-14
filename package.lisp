@@ -83,6 +83,7 @@
 
 (defpackage #:doors
   (:use #:clim-lisp #:clim #:clim-doors #:freedesktop-standards)
-  (:export #:doors)
+  (:export #:doors
+           #:*config-file*)
   (:local-nicknames (#:a #:alexandria)))
 
