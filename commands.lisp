@@ -225,7 +225,7 @@
        ()
   nil)
 
-(add-keystroke-to-command-table 'second-map '(#\a :super) :command 'com-last-frame)
+(add-keystroke-to-command-table 'second-map '(#\a :super) :command 'com-last-frame :errorp nil)
 
 (define-doors-wm-command-with-grabbed-keystroke (com-second-map :keystroke (#\a :super)) 
     ()
