@@ -243,7 +243,8 @@
        (with-sheet-from-window (sheet)
          (make-instance 'window-configuration-event
                         :sheet sheet
-                        :x x :y y :width width :height height)))
+                        :region (make-bounding-rectangle
+                                 x y (+ x width) (+ y height)))))
       (:destroy-notify
        (with-sheet-from-window (sheet)
          (make-instance 'window-destroy-event :sheet sheet)))
