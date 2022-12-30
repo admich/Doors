@@ -154,7 +154,7 @@
       ((:key-press :key-release)
        (with-sheet-from-window (sheet)
          (multiple-value-bind (keyname modifier-state keysym-name)
-             (clim-clx::x-event-to-key-name-and-modifiers *doors-port*
+             (clim-xcommon:x-event-to-key-name-and-modifiers *doors-port*
                                                           event-key code state)
            (make-instance (if (eq event-key :key-press)
                               'key-press-event
